@@ -13,13 +13,6 @@ use assets::Assets;
 use gpui::prelude::*;
 use gpui::{actions, px, size};
 use gpui::{App, Application, Bounds, KeyBinding, TitlebarOptions, WindowBounds, WindowKind, WindowOptions};
-// use llrt_core::bytecode::BYTECODE_EXT;
-// use llrt_core::compiler::compile_file;
-// use llrt_core::modules::console::{self, LogLevel};
-// use llrt_core::modules::path::name_extname;
-// use llrt_core::utils::io::{is_supported_ext, DirectoryWalker, SUPPORTED_EXTENSIONS};
-// use llrt_core::vm::Vm;
-// use llrt_core::{async_with, runtime_client, CatchResultExt, VERSION};
 use memory_game::MemoryGame;
 
 #[global_allocator]
