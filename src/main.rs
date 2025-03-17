@@ -8,7 +8,6 @@ mod memory_game;
 mod styled;
 mod utils;
 
-use anyhow::Error;
 use assets::Assets;
 use gpui::prelude::*;
 use gpui::{actions, px, size};
@@ -20,8 +19,7 @@ static ALLOC: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 actions!(gpui_shadcn, [Quit, Open, CloseWindow]);
 
-#[tokio::main]
-async fn main() -> Result<(), Error> {
+fn main() {
   #[cfg(all(not(debug_assertions), target_os = "windows"))]
   unsafe {
     use windows::Win32::System::Console::{AttachConsole, ATTACH_PARENT_PROCESS};
@@ -41,7 +39,6 @@ async fn main() -> Result<(), Error> {
 
     cx.on_action(quit);
     cx.activate(true);
-    gpui_tokio::init(cx);
 
     let titlebar = TitlebarOptions {
       title: Some("Memory Match Game".into()),
@@ -63,8 +60,6 @@ async fn main() -> Result<(), Error> {
     cx.open_window(options, |_window, cx| cx.new(|_cx| MemoryGame::new()))
       .expect("failed to open window");
   });
-
-  Ok(())
 }
 
 fn quit(_: &Quit, cx: &mut App) {
