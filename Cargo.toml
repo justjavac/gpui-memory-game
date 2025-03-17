@@ -74,14 +74,14 @@ name = "gpui-memory-game"
 path = "src/main.rs"
 
 [package.metadata.winres]
-OriginalFilename = "memory-match-game.exe"
+OriginalFilename = "gpui-memory-game.exe"
 LegalCopyright = "MIT."
-ProductName = "memory-match-game"
+ProductName = "gpui-memory-game"
 FileDescription = "Memory Match Game"
 
 [package.metadata.packager]
-product-name = "memory-match-game"
-identifier = "com.justjavac.memory-match-game"
+product-name = "gpui-memory-game"
+identifier = "com.justjavac.gpui-memory-game"
 copyright = "Copyright (c) justjavac 2025. All rights reserved."
 category = "Game"
 icons = ["assets/icon-*.png"]

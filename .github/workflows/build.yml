@@ -101,28 +101,28 @@ jobs:
 
       - name: Pre-release (linux x86_64)
         if: matrix.os == 'ubuntu-latest'
-        run: zip -r memory-match-game-x86_64-unknown-linux-gnu.zip memory-match-game
+        run: zip -r gpui-memory-game-x86_64-unknown-linux-gnu.zip gpui-memory-game
         working-directory: target/release
 
       - name: Pre-release (linux aarch64)
         if: matrix.os == 'ubuntu-24.04-arm'
-        run: zip -r memory-match-game-aarch64-unknown-linux-gnu.zip memory-match-game
+        run: zip -r gpui-memory-game-aarch64-unknown-linux-gnu.zip gpui-memory-game
         working-directory: target/release
 
       - name: Pre-release (mac)
         if: matrix.os == 'macOS-13'
-        run: zip -r memory-match-game-x86_64-apple-darwin.zip memory-match-game
+        run: zip -r gpui-memory-game-x86_64-apple-darwin.zip gpui-memory-game
         working-directory: target/release
 
       - name: Pre-release (aarch64-apple-darwin)
         if: matrix.os == 'macOS-latest'
-        run: zip -r memory-match-game-aarch64-apple-darwin.zip memory-match-game
+        run: zip -r gpui-memory-game-aarch64-apple-darwin.zip gpui-memory-game
         working-directory: target/release
 
       - name: Pre-release (windows x86_64)
         if: matrix.os == 'windows-latest'
         run: |
-          Compress-Archive -CompressionLevel Optimal -Force -Path target/release/memory-match-game.exe -DestinationPath target/release/memory-match-game-x86_64-pc-windows-msvc.zip
+          Compress-Archive -CompressionLevel Optimal -Force -Path target/release/gpui-memory-game.exe -DestinationPath target/release/gpui-memory-game-x86_64-pc-windows-msvc.zip
 
       - name: Release
         uses: softprops/action-gh-release@v1
@@ -133,10 +133,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           files: |
-            target/release/memory-match-game-x86_64-pc-windows-msvc.zip
-            target/release/memory-match-game-x86_64-unknown-linux-gnu.zip
-            target/release/memory-match-game-x86_64-apple-darwin.zip
-            target/release/memory-match-game-aarch64-apple-darwin.zip
-            target/release/memory-match-game-aarch64-unknown-linux-gnu.zip
-            target/release/memory-match-game_*.dmg
+            target/release/gpui-memory-game-x86_64-pc-windows-msvc.zip
+            target/release/gpui-memory-game-x86_64-unknown-linux-gnu.zip
+            target/release/gpui-memory-game-x86_64-apple-darwin.zip
+            target/release/gpui-memory-game-aarch64-apple-darwin.zip
+            target/release/gpui-memory-game-aarch64-unknown-linux-gnu.zip
+            target/release/gpui-memory-game_*.dmg
           draft: true
