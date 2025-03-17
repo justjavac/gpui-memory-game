@@ -3,6 +3,7 @@ use crate::components::card::MemoryCard;
 use gpui::{Hsla, SharedString};
 use rand::seq::SliceRandom;
 use std::sync::LazyLock;
+use smallvec::{SmallVec, smallvec};
 
 static ICON_CONFIGS: LazyLock<Vec<(&str, Hsla)>> = LazyLock::new(|| {
   vec![
@@ -15,8 +16,8 @@ static ICON_CONFIGS: LazyLock<Vec<(&str, Hsla)>> = LazyLock::new(|| {
   ]
 });
 
-pub fn create_cards() -> Vec<MemoryCard> {
-  let mut cards = vec![];
+pub fn create_cards() -> SmallVec<[MemoryCard; 12]> {
+  let mut cards = smallvec![];
 
   for (icon, color) in ICON_CONFIGS.iter() {
     cards.push(MemoryCard {

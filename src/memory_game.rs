@@ -8,10 +8,11 @@ use gpui::{div, linear_color_stop, linear_gradient};
 use gpui::{Context, Window};
 use smol::Timer;
 use std::time::Duration;
+use smallvec::{SmallVec, smallvec};
 
 pub struct MemoryGame {
-  cards: Vec<MemoryCard>,
-  flipped_indexes: Vec<usize>,
+  cards: SmallVec<[MemoryCard; 12]>,
+  flipped_indexes: SmallVec<[usize; 12]>,
   matches: u8,
   is_checking: bool,
 }
@@ -21,7 +22,7 @@ impl MemoryGame {
     let cards = create_cards();
     Self {
       cards,
-      flipped_indexes: vec![],
+      flipped_indexes: smallvec![],
       matches: 0,
       is_checking: false,
     }
