@@ -1,0 +1,14 @@
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-Ctarget-feature=+crt-static", "-Clink-arg=/STACK:8000000"]
+
+[alias]
+lint = "clippy -- -D warnings"
+r    = "run"
+rr   = "run --release"
+b    = "build"
+br   = "build --release"
+re   = "run --example"
+rre  = "run --release --example"
+
+[net]
+git-fetch-with-cli = true
