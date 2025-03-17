@@ -6,8 +6,7 @@ use crate::utils::create_cards;
 use gpui::prelude::*;
 use gpui::{div, linear_color_stop, linear_gradient};
 use gpui::{Context, Window};
-use smol::Timer;
-use std::time::Duration;
+use tokio::time::{sleep, Duration};
 
 pub struct MemoryGame {
   cards: Vec<MemoryCard>,
@@ -62,7 +61,7 @@ impl MemoryGame {
 
     if first_card.icon == second_card.icon {
       cx.spawn(|this, cx| async move {
-        Timer::after(Duration::from_millis(500)).await;
+        sleep(Duration::from_millis(500)).await;
         cx.update(|cx| {
           if let Some(view) = this.upgrade() {
             view.update(cx, |view, cx| {
@@ -86,7 +85,7 @@ impl MemoryGame {
     } else {
       // If the cards don't match, flip them back over after a delay
       cx.spawn(|this, cx| async move {
-        Timer::after(Duration::from_millis(1000)).await;
+        sleep(Duration::from_millis(1000)).await;
         cx.update(|cx| {
           if let Some(view) = this.upgrade() {
             view.update(cx, |view, cx| {

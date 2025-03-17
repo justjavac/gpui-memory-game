@@ -8,19 +8,27 @@ mod memory_game;
 mod styled;
 mod utils;
 
+use anyhow::Error;
 use assets::Assets;
 use gpui::prelude::*;
 use gpui::{actions, px, size};
 use gpui::{App, Application, Bounds, KeyBinding, TitlebarOptions, WindowBounds, WindowKind, WindowOptions};
+// use llrt_core::bytecode::BYTECODE_EXT;
+// use llrt_core::compiler::compile_file;
+// use llrt_core::modules::console::{self, LogLevel};
+// use llrt_core::modules::path::name_extname;
+// use llrt_core::utils::io::{is_supported_ext, DirectoryWalker, SUPPORTED_EXTENSIONS};
+// use llrt_core::vm::Vm;
+// use llrt_core::{async_with, runtime_client, CatchResultExt, VERSION};
 use memory_game::MemoryGame;
-use wee_alloc::WeeAlloc;
 
 #[global_allocator]
-static ALLOC: WeeAlloc = WeeAlloc::INIT;
+static ALLOC: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 actions!(gpui_shadcn, [Quit, Open, CloseWindow]);
 
-fn main() {
+#[tokio::main]
+async fn main() -> Result<(), Error> {
   #[cfg(all(not(debug_assertions), target_os = "windows"))]
   unsafe {
     use windows::Win32::System::Console::{AttachConsole, ATTACH_PARENT_PROCESS};
@@ -40,6 +48,7 @@ fn main() {
 
     cx.on_action(quit);
     cx.activate(true);
+    gpui_tokio::init(cx);
 
     let titlebar = TitlebarOptions {
       title: Some("Memory Match Game".into()),
@@ -61,6 +70,8 @@ fn main() {
     cx.open_window(options, |_window, cx| cx.new(|_cx| MemoryGame::new()))
       .expect("failed to open window");
   });
+
+  Ok(())
 }
 
 fn quit(_: &Quit, cx: &mut App) {

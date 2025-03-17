@@ -111,12 +111,12 @@ jobs:
 
       - name: Pre-release (mac)
         if: matrix.os == 'macOS-13'
-        run: zip -r gpui-memory-game-x86_64-apple-darwin.zip gpui-memory-game
+        run: zip -r gpui-memory-game-x86_64-apple-darwin.zip gpui-memory-game.app
         working-directory: target/release
 
       - name: Pre-release (aarch64-apple-darwin)
         if: matrix.os == 'macOS-latest'
-        run: zip -r gpui-memory-game-aarch64-apple-darwin.zip gpui-memory-game
+        run: zip -r gpui-memory-game-aarch64-apple-darwin.zip gpui-memory-game.app
         working-directory: target/release
 
       - name: Pre-release (windows x86_64)
@@ -139,4 +139,6 @@ jobs:
             target/release/gpui-memory-game-aarch64-apple-darwin.zip
             target/release/gpui-memory-game-aarch64-unknown-linux-gnu.zip
             target/release/gpui-memory-game_*.dmg
+            target/release/gpui-memory-game_*.msi
+            target/release/gpui-memory-game_*.deb
           draft: true
