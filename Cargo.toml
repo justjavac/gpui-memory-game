@@ -14,7 +14,7 @@ resolver = "2"
 
 [dependencies]
 anyhow = "1.0.95"
-futures = { version = "0.3.31", default-features = false }
+futures = "0.3.31"
 gpui = { git = "https://github.com/zed-industries/zed.git" }
 rand = "0.9.0"
 rust-embed = "8.6.0"
