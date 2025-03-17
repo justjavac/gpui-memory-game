@@ -95,7 +95,9 @@ jobs:
         run: cargo build --release --locked
 
       - name: Package release
-        run: cargo packager --release
+        run: |-
+          cargo install cargo-packager
+          cargo packager --release
 
       - name: Pre-release (linux x86_64)
         if: matrix.os == 'ubuntu-latest'
