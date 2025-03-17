@@ -1,0 +1,97 @@
+[package]
+name = "gpui-memory-game"
+version = "0.0.1"
+description = "Memory Match Game"
+keywords = ["gpui", "game", "ui"]
+categories = ["game"]
+homepage = "https://github.com/justjavac/gpui-memory-game"
+repository = "https://github.com/justjavac/gpui-memory-game"
+authors = ["迷渡 <justjavac@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+edition = "2021"
+resolver = "2"
+
+[dependencies]
+anyhow = "1.0.95"
+futures = "0.3.31"
+gpui = { git = "https://github.com/zed-industries/zed.git" }
+rand = "0.9.0"
+rust-embed = "8.6.0"
+smallvec = "1.13.2"
+smol = "2.0.2"
+wee_alloc = "0.4.5"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.58", features = [
+    "implement",
+    "Foundation_Collections",
+    "Foundation_Numerics",
+    "Storage",
+    "System_Threading",
+    "UI_StartScreen",
+    "UI_ViewManagement",
+    "Wdk_System_SystemServices",
+    "Win32_Globalization",
+    "Win32_Graphics_Direct2D",
+    "Win32_Graphics_Direct2D_Common",
+    "Win32_Graphics_DirectWrite",
+    "Win32_Graphics_Dwm",
+    "Win32_Graphics_Dxgi_Common",
+    "Win32_Graphics_Gdi",
+    "Win32_Graphics_Imaging",
+    "Win32_Graphics_Imaging_D2D",
+    "Win32_Security",
+    "Win32_Security_Credentials",
+    "Win32_Storage_FileSystem",
+    "Win32_System_Com",
+    "Win32_System_Com_StructuredStorage",
+    "Win32_System_Console",
+    "Win32_System_DataExchange",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Memory",
+    "Win32_System_Ole",
+    "Win32_System_SystemInformation",
+    "Win32_System_SystemServices",
+    "Win32_System_Threading",
+    "Win32_System_WinRT",
+    "Win32_UI_Controls",
+    "Win32_UI_HiDpi",
+    "Win32_UI_Input_Ime",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_Shell",
+    "Win32_UI_Shell_Common",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
+[target.'cfg(target_os = "windows")'.build-dependencies]
+winapi = { version = "0.3.9", features = ["winnt"] }
+winres = "0.1.12"
+winresource = "0.1"
+
+[[bin]]
+name = "gpui-memory-game"
+path = "src/main.rs"
+
+[package.metadata.winres]
+OriginalFilename = "memory-match-game.exe"
+LegalCopyright = "MIT."
+ProductName = "memory-match-game"
+FileDescription = "Memory Match Game"
+
+[package.metadata.packager]
+product-name = "memory-match-game"
+identifier = "com.justjavac.memory-match-game"
+copyright = "Copyright (c) justjavac 2025. All rights reserved."
+category = "Game"
+icons = ["assets/icon-*.png"]
+
+[package.metadata.packager.macos]
+entitlements = "macos/entitlements.plist"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 'z'
+panic = "abort"
+strip = true
