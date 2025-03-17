@@ -2,11 +2,11 @@ use crate::colors::*;
 use crate::components::card::MemoryCard;
 use gpui::{Hsla, SharedString};
 use rand::seq::SliceRandom;
+use smallvec::{smallvec, SmallVec};
 use std::sync::LazyLock;
-use smallvec::{SmallVec, smallvec};
 
-static ICON_CONFIGS: LazyLock<Vec<(&str, Hsla)>> = LazyLock::new(|| {
-  vec![
+static ICON_CONFIGS: LazyLock<SmallVec<[(&str, Hsla); 6]>> = LazyLock::new(|| {
+  smallvec![
     ("icons/heart.svg", rose_400()),
     ("icons/star.svg", amber_400()),
     ("icons/sun.svg", yellow_400()),

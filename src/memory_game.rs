@@ -6,9 +6,9 @@ use crate::utils::create_cards;
 use gpui::prelude::*;
 use gpui::{div, linear_color_stop, linear_gradient};
 use gpui::{Context, Window};
+use smallvec::{smallvec, SmallVec};
 use smol::Timer;
 use std::time::Duration;
-use smallvec::{SmallVec, smallvec};
 
 pub struct MemoryGame {
   cards: SmallVec<[MemoryCard; 12]>,
