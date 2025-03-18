@@ -1804,7 +1804,7 @@ dependencies = [
 
 [[package]]
 name = "gpui-memory-game"
-version = "0.0.6"
+version = "0.0.7"
 dependencies = [
  "anyhow",
  "futures",

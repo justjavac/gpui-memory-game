@@ -144,5 +144,8 @@ jobs:
             target/release/gpui-memory-game-aarch64-unknown-linux-gnu.zip
             target/release/gpui-memory-game_*.dmg
             target/release/gpui-memory-game_*.msi
+            target/release/gpui-memory-game_*-setup.exe
             target/release/gpui-memory-game_*.deb
+            target/release/gpui-memory-game_*.AppImage
+            target/release/gpui-memory-game_*.tar.gz
           draft: true
