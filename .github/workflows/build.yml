@@ -148,4 +148,3 @@ jobs:
             target/release/gpui-memory-game_*.deb
             target/release/gpui-memory-game_*.AppImage
             target/release/gpui-memory-game_*.tar.gz
-          draft: true
