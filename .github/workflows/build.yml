@@ -31,7 +31,7 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          # - ubuntu-24.04-arm
+          - ubuntu-24.04-arm
           - macOS-13 # Intel
           - macOS-latest # Apple Silicon
           - windows-latest
