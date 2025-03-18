@@ -7,7 +7,6 @@ use gpui::prelude::*;
 use gpui::{div, linear_color_stop, linear_gradient};
 use gpui::{Context, Window};
 use smallvec::{smallvec, SmallVec};
-use smol::Timer;
 use std::time::Duration;
 
 pub struct MemoryGame {
@@ -62,41 +61,37 @@ impl MemoryGame {
     let second_card = self.cards[self.flipped_indexes[1]].clone();
 
     if first_card.icon == second_card.icon {
-      cx.spawn(|this, cx| async move {
-        Timer::after(Duration::from_millis(500)).await;
-        cx.update(|cx| {
-          if let Some(view) = this.upgrade() {
-            view.update(cx, |view, cx| {
-              view.cards[first_idx].is_matched = true;
-              view.cards[second_idx].is_matched = true;
-              view.flipped_indexes.clear();
-              view.matches += 1;
-              view.is_checking = false;
+      cx.spawn(|this, mut cx| async move {
+        cx.background_executor().timer(Duration::from_millis(500)).await;
 
-              // Check for game completion
-              if view.matches == view.cards.len() as u8 / 2 {
-                println!("Game Over!");
-              }
+        this
+          .update(&mut cx, |this, cx| {
+            this.cards[first_idx].is_matched = true;
+            this.cards[second_idx].is_matched = true;
+            this.flipped_indexes.clear();
+            this.matches += 1;
+            this.is_checking = false;
 
-              cx.notify();
-            });
-          }
-        })
+            // Check for game completion
+            if this.matches == this.cards.len() as u8 / 2 {
+              println!("Game Over!");
+            }
+            cx.notify()
+          })
+          .ok()
       })
       .detach();
     } else {
       // If the cards don't match, flip them back over after a delay
-      cx.spawn(|this, cx| async move {
-        Timer::after(Duration::from_millis(1000)).await;
-        cx.update(|cx| {
-          if let Some(view) = this.upgrade() {
-            view.update(cx, |view, cx| {
-              view.flipped_indexes.clear();
-              view.is_checking = false;
-              cx.notify();
-            });
-          }
-        })
+      cx.spawn(|this, mut cx| async move {
+        cx.background_executor().timer(Duration::from_millis(1000)).await;
+        this
+          .update(&mut cx, |this, cx| {
+            this.flipped_indexes.clear();
+            this.is_checking = false;
+            cx.notify()
+          })
+          .ok()
       })
       .detach();
     }
