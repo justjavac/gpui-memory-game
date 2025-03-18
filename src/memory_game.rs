@@ -63,7 +63,6 @@ impl MemoryGame {
     if first_card.icon == second_card.icon {
       cx.spawn(|this, mut cx| async move {
         cx.background_executor().timer(Duration::from_millis(500)).await;
-
         this
           .update(&mut cx, |this, cx| {
             this.cards[first_idx].is_matched = true;
