@@ -1,5 +1,5 @@
 use gpui::prelude::*;
-use gpui::{black, div, white, App, Window, Empty};
+use gpui::{black, div, white, App, Empty, Window};
 
 #[derive(IntoElement)]
 pub struct TailwindIndicator {}
@@ -13,7 +13,7 @@ impl TailwindIndicator {
 impl RenderOnce for TailwindIndicator {
   fn render(self, window: &mut Window, _cx: &mut App) -> impl IntoElement {
     if !cfg!(debug_assertions) {
-      return Empty{}.into_any_element();
+      return Empty {}.into_any_element();
     }
 
     let width = window.bounds().size.width.to_f64();
