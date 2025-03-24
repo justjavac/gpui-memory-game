@@ -9,7 +9,7 @@ repository = "https://github.com/justjavac/gpui-memory-game"
 authors = ["迷渡 <justjavac@gmail.com>"]
 license = "MIT"
 readme = "README.md"
-edition = "2021"
+edition = "2024"
 resolver = "2"
 
 [dependencies]
