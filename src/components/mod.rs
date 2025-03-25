@@ -5,5 +5,6 @@ pub mod tailwind_indicator;
 
 pub use button::button;
 pub use card::Card;
+pub use card::MemoryCard;
 pub use header::Header;
 pub use tailwind_indicator::TailwindIndicator;

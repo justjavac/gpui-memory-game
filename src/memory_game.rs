@@ -1,12 +1,10 @@
 use crate::colors::*;
-use crate::components::card::MemoryCard;
 use crate::components::*;
 use crate::styled::StyledExt;
 use crate::utils::create_cards;
 use gpui::prelude::*;
-use gpui::{div, linear_color_stop, linear_gradient};
-use gpui::{Context, Window};
-use smallvec::{smallvec, SmallVec};
+use gpui::{Context, Window, div, linear_color_stop, linear_gradient};
+use smallvec::{SmallVec, smallvec};
 use std::time::Duration;
 
 pub struct MemoryGame {
@@ -61,10 +59,10 @@ impl MemoryGame {
     let second_card = self.cards[self.flipped_indexes[1]].clone();
 
     if first_card.icon == second_card.icon {
-      cx.spawn(|this, mut cx| async move {
+      cx.spawn(async move |this, cx| {
         cx.background_executor().timer(Duration::from_millis(500)).await;
         this
-          .update(&mut cx, |this, cx| {
+          .update(cx, |this, cx| {
             this.cards[first_idx].is_matched = true;
             this.cards[second_idx].is_matched = true;
             this.flipped_indexes.clear();
@@ -82,10 +80,10 @@ impl MemoryGame {
       .detach();
     } else {
       // If the cards don't match, flip them back over after a delay
-      cx.spawn(|this, mut cx| async move {
+      cx.spawn(async move |this, cx| {
         cx.background_executor().timer(Duration::from_millis(1000)).await;
         this
-          .update(&mut cx, |this, cx| {
+          .update(cx, |this, cx| {
             this.flipped_indexes.clear();
             this.is_checking = false;
             cx.notify()
