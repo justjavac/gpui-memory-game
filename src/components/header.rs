@@ -1,6 +1,6 @@
 use crate::styled::StyledExt;
 use gpui::prelude::*;
-use gpui::{div, App, FontWeight, Window};
+use gpui::{App, FontWeight, Window, div};
 
 #[derive(IntoElement)]
 pub struct Header {

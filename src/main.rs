@@ -10,8 +10,8 @@ mod utils;
 
 use assets::Assets;
 use gpui::prelude::*;
-use gpui::{actions, px, size};
 use gpui::{App, Application, Bounds, KeyBinding, TitlebarOptions, WindowBounds, WindowKind, WindowOptions};
+use gpui::{actions, px, size};
 use memory_game::MemoryGame;
 
 #[global_allocator]
@@ -22,7 +22,7 @@ actions!(gpui_shadcn, [Quit, Open, CloseWindow]);
 fn main() {
   #[cfg(all(not(debug_assertions), target_os = "windows"))]
   unsafe {
-    use windows::Win32::System::Console::{AttachConsole, ATTACH_PARENT_PROCESS};
+    use windows::Win32::System::Console::{ATTACH_PARENT_PROCESS, AttachConsole};
     let _ = AttachConsole(ATTACH_PARENT_PROCESS);
   }
 

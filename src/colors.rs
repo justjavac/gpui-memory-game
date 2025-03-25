@@ -1,6 +1,6 @@
 //! Color constants for the app.
 //! https://ui.shadcn.com/colors
-use gpui::{hsla, Hsla};
+use gpui::{Hsla, hsla};
 
 #[inline]
 pub fn amber_400() -> Hsla {

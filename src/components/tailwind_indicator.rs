@@ -1,5 +1,5 @@
 use gpui::prelude::*;
-use gpui::{black, div, white, App, Empty, Window};
+use gpui::{App, Empty, Window, black, div, white};
 
 #[derive(IntoElement)]
 pub struct TailwindIndicator {}

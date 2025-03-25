@@ -1,7 +1,7 @@
 use crate::colors::*;
 use crate::styled::StyledExt;
 use gpui::prelude::*;
-use gpui::{div, size, svg, Animation, AnimationExt, App, ClickEvent, Hsla, SharedString, Transformation, Window};
+use gpui::{Animation, AnimationExt, App, ClickEvent, Hsla, SharedString, Transformation, Window, div, size, svg};
 use std::time::Duration;
 
 #[derive(Clone, Debug, PartialEq)]

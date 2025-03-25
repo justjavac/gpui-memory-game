@@ -1,6 +1,6 @@
 use crate::styled::StyledExt;
 use gpui::prelude::*;
-use gpui::{div, App, ClickEvent, Window};
+use gpui::{App, ClickEvent, Window, div};
 
 pub fn button(on_click: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static) -> impl IntoElement {
   div()
