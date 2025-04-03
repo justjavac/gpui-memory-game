@@ -4,6 +4,8 @@ A copy of
 [kids-memory-game](https://v0.dev/chat/community/kids-memory-game-Tmi0y0iPzxv)
 built with Rust and gpui.
 
+![gpui memory game](./assets/screenshot.png)
+
 ## Executable Sizes
 
 | Plateform        | Size(M) |
