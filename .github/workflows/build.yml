@@ -53,7 +53,8 @@ jobs:
               gcc g++ clang libfontconfig-dev libwayland-dev \
               libwebkit2gtk-4.1-dev libxkbcommon-x11-dev \
               libssl-dev libzstd-dev \
-              vulkan-validationlayers libvulkan1
+              vulkan-validationlayers libvulkan1 \
+              mold
 
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
