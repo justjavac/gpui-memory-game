@@ -16,6 +16,8 @@ resolver = "2"
 anyhow = "1.0.95"
 futures = "0.3.31"
 gpui = { git = "https://github.com/zed-industries/zed.git", default-features = false, features = [
+    "wayland", 
+    "x11",
     "http_client",
     "font-kit",
 ] }
