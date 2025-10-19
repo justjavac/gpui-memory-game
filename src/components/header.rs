@@ -2,6 +2,12 @@ use crate::styled::StyledExt;
 use gpui::prelude::*;
 use gpui::{App, FontWeight, Window, div};
 
+/// The header component displaying the game title and match count.
+///
+/// It uses styled extensions for consistent styling across the application.
+/// The header shows the number of matches found out of the total possible matches.
+/// This component is designed to be reusable and easily integrated into the main game layout.
+/// It leverages the `IntoElement` trait for seamless rendering within the GPUI framework.
 #[derive(IntoElement)]
 pub struct Header {
   matches: u8,

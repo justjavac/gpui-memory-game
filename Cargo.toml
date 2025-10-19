@@ -13,22 +13,16 @@ edition = "2024"
 resolver = "2"
 
 [dependencies]
-anyhow = "1.0.95"
+anyhow = "1.0.100"
 futures = "0.3.31"
-gpui = { git = "https://github.com/zed-industries/zed.git", default-features = false, features = [
-    "wayland", 
-    "x11",
-    "http_client",
-    "font-kit",
-] }
-rand = "0.9.0"
-rust-embed = "8.6.0"
-smallvec = "1.13.2"
-mimalloc = "0.1.43"
+gpui = "0.2.1"
+rand = "0.9.2"
+rust-embed = "8.7.2"
+smallvec = "1.15.1"
+mimalloc = "0.1.48"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-windows = { version = "0.58", features = [
-    "implement",
+windows = { version = "0.62.2", features = [
     "Foundation_Collections",
     "Foundation_Numerics",
     "Storage",
@@ -71,7 +65,7 @@ windows = { version = "0.58", features = [
 [target.'cfg(target_os = "windows")'.build-dependencies]
 winapi = { version = "0.3.9", features = ["winnt"] }
 winres = "0.1.12"
-winresource = "0.1"
+winresource = "0.1.23"
 
 [[bin]]
 name = "gpui-memory-game"

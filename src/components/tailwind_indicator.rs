@@ -1,6 +1,15 @@
 use gpui::prelude::*;
 use gpui::{App, Empty, Window, black, div, white};
 
+/// A debug-only indicator that shows the current Tailwind CSS breakpoint.
+///
+/// This component is only rendered in debug builds and helps developers
+/// identify the current responsive breakpoint based on the window width.
+/// The indicator displays one of the following labels:
+/// "xs", "sm", "md", "lg", "xl", or "2xl".
+///
+/// The indicator is styled to be unobtrusive, positioned at the bottom-left corner
+/// of the window with a semi-transparent background.
 #[derive(IntoElement)]
 pub struct TailwindIndicator {}
 

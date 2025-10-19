@@ -17,7 +17,7 @@ use memory_game::MemoryGame;
 #[global_allocator]
 static ALLOC: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
-actions!(gpui_shadcn, [Quit, Open, CloseWindow]);
+actions!(gpui_memory_game, [Quit, Open, CloseWindow]);
 
 fn main() {
   #[cfg(all(not(debug_assertions), target_os = "windows"))]

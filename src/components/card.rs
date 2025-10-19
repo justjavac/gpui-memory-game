@@ -4,6 +4,10 @@ use gpui::prelude::*;
 use gpui::{Animation, AnimationExt, App, ClickEvent, Hsla, SharedString, Transformation, Window, div, size, svg};
 use std::time::Duration;
 
+/// Represents a memory card with an icon, color, and matched state.
+///
+/// This struct is used to define the properties of each card in the memory game.
+/// It includes the card's icon, color, and whether it has been matched with another card.
 #[derive(Clone, Debug, PartialEq)]
 pub struct MemoryCard {
   pub icon: SharedString,
@@ -13,6 +17,14 @@ pub struct MemoryCard {
 
 type CardClickHandler = Box<dyn Fn(&ClickEvent, &mut Window, &mut App) + 'static>;
 
+/// A UI component representing a memory card in the game.
+///
+/// The `Card` struct implements the `IntoElement` trait, allowing it to be rendered
+/// as a UI element within the GPUI framework. It includes properties for the card's
+/// identifier, the associated `MemoryCard` data, its flipped state, and a click handler.
+///
+/// The `render` method defines the visual appearance and behavior of the card,
+/// including styles for different states (flipped, matched) and animations for flipping.
 #[derive(IntoElement)]
 pub struct Card {
   pub(crate) id: usize,

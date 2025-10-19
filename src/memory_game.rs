@@ -7,6 +7,12 @@ use gpui::{Context, Window, div, linear_color_stop, linear_gradient};
 use smallvec::{SmallVec, smallvec};
 use std::time::Duration;
 
+/// The main memory game component managing game state and rendering.
+///
+/// It handles user interactions, game logic, and the overall layout of the memory game.  
+/// The component maintains the state of the cards, flipped cards, and match count.  
+/// It provides methods to flip cards, check for matches, and reset the game.  
+/// The rendering logic uses GPUI's element system to create a responsive and visually appealing game interface.
 pub struct MemoryGame {
   cards: SmallVec<[MemoryCard; 12]>,
   flipped_indexes: SmallVec<[usize; 12]>,
@@ -25,6 +31,7 @@ impl MemoryGame {
     }
   }
 
+  /// Flips a card at the given index and checks for matches if two cards are flipped.
   pub fn flip_card(&mut self, index: usize, cx: &mut Context<Self>) {
     // Prevent clicking if already checking
     if self.is_checking {
@@ -94,6 +101,7 @@ impl MemoryGame {
     }
   }
 
+  /// Resets the game by re-creating the cards and clearing the game state.
   pub fn reset_game(&mut self, cx: &mut Context<Self>) {
     self.cards = create_cards();
     self.flipped_indexes.clear();
@@ -111,6 +119,7 @@ impl Render for MemoryGame {
       .flex()
       .flex_col()
       .items_center()
+      .size_full()
       .min_h_full()
       .p_4()
       .gap_y_8()

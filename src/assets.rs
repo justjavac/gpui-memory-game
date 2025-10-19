@@ -2,6 +2,17 @@ use anyhow::anyhow;
 use gpui::AssetSource;
 use rust_embed::RustEmbed;
 
+/// Asset manager for embedded assets such as icons.
+///
+/// The `Assets` struct uses the `RustEmbed` derive macro to include all files
+/// located in the `./assets` directory, specifically targeting the `icons` subdirectory.
+/// Files matching the pattern `*.DS_Store` are excluded to avoid unnecessary clutter.
+///
+/// This setup allows for efficient access to embedded assets at runtime,
+/// facilitating their use within the application without relying on external file dependencies.
+///
+/// The `AssetSource` trait implementation provides methods to load and list assets,
+/// enabling seamless integration with the GPUI framework.
 #[derive(RustEmbed)]
 #[folder = "./assets"]
 #[include = "icons/**/*"]
