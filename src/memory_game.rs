@@ -14,9 +14,13 @@ use std::time::Duration;
 /// It provides methods to flip cards, check for matches, and reset the game.  
 /// The rendering logic uses GPUI's element system to create a responsive and visually appealing game interface.
 pub struct MemoryGame {
+  /// The collection of memory cards in the game.
   cards: SmallVec<[MemoryCard; 12]>,
+  /// Indexes of currently flipped cards.
   flipped_indexes: SmallVec<[usize; 12]>,
+  /// The number of matches found so far.
   matches: u8,
+  /// Flag indicating if the game is currently checking for a match.
   is_checking: bool,
 }
 
