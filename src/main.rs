@@ -29,7 +29,10 @@ fn main() {
   let app = Application::new().with_assets(Assets);
 
   app.run(|cx| {
-    cx.bind_keys([KeyBinding::new("cmd-w", Quit, None)]);
+    // The key name `secondary` can be used as platform specific behavior,
+    // on MacOS it is translated to the `cmd` modifier,
+    // on all other platforms it is translated to the `control` modifier.
+    cx.bind_keys([KeyBinding::new("secondary-w", Quit, None)]);
     cx.on_window_closed(|cx| {
       if cx.windows().is_empty() {
         cx.quit();
