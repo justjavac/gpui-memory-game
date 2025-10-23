@@ -120,6 +120,7 @@ impl Render for MemoryGame {
     let width = window.bounds().size.width.to_f64();
 
     div()
+      .id("memory-game")
       .flex()
       .flex_col()
       .items_center()
@@ -131,6 +132,7 @@ impl Render for MemoryGame {
         linear_color_stop(purple_950(), 0.0),
         linear_color_stop(slate_950(), 1.0),
       ))
+      .overflow_scroll()
       .child(Header::new(self.matches))
       .child(
         div()
