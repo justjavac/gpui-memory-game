@@ -124,7 +124,6 @@ impl Render for MemoryGame {
       .flex_col()
       .items_center()
       .size_full()
-      .min_h_full()
       .p_4()
       .gap_y_8()
       .bg(linear_gradient(
