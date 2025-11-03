@@ -2082,7 +2082,6 @@ name = "gpui-memory-game"
 version = "0.2.1"
 dependencies = [
  "anyhow",
- "futures",
  "gpui",
  "mimalloc",
  "rand 0.9.2",
