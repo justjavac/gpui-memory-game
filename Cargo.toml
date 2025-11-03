@@ -87,9 +87,23 @@ icons = ["assets/icon-*.png"]
 [package.metadata.packager.macos]
 entitlements = "macos/entitlements.plist"
 
+[profile.dev]
+opt-level = 0
+codegen-units = 256
+incremental = true
+split-debuginfo = "unpacked"
+
+[profile.dev.package."*"]
+opt-level = 1
+
+[profile.test]
+opt-level = 0
+codegen-units = 256
+incremental = true
+
 [profile.release]
+opt-level = 'z'
 codegen-units = 1
 lto = true
-opt-level = 'z'
 panic = "abort"
 strip = true
