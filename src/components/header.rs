@@ -40,3 +40,15 @@ impl RenderOnce for Header {
       )
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn header_new_sets_matches() {
+    let h = Header::new(2);
+    // cannot call render without GPUI runtime, but can verify stored value
+    assert_eq!(h.matches, 2);
+  }
+}

@@ -91,3 +91,25 @@ impl RenderOnce for Card {
       )
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use gpui::SharedString;
+
+  #[test]
+  fn memory_card_clone_and_eq() {
+    let c = MemoryCard { icon: SharedString::from("icons/heart.svg"), color: indigo_400(), is_matched: false };
+    let d = c.clone();
+    assert_eq!(c, d);
+  }
+
+  #[test]
+  fn card_new_sets_fields() {
+    let mem = MemoryCard { icon: SharedString::from("icons/star.svg"), color: indigo_400(), is_matched: false };
+    let card = Card::new(3, mem.clone(), true, |_e, _w, _a| {});
+    assert_eq!(card.id, 3);
+    assert_eq!(card.card, mem);
+    assert!(card.is_flipped);
+  }
+}
