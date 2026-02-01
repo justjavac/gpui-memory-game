@@ -6,31 +6,47 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+        rust: [stable]
     steps:
       - uses: actions/checkout@v4
 
-      - name: Cache cargo registry and target
+      - name: Cache cargo registry, git and target
         uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ matrix.rust }}-
+            ${{ runner.os }}-cargo-
 
-      - name: Install Rust
+      - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: ${{ matrix.rust }}
           profile: minimal
           override: true
+          components: rustfmt, clippy
 
-      - name: Run cargo test
+      - name: Check formatting
         run: |
-          cargo test --all --verbose
+          cargo fmt --all -- --check
+
+      - name: Run cargo test (build first to populate cache)
+        run: |
+          cargo build --workspace --tests --locked --verbose
+          cargo test --workspace --verbose
