@@ -1,19 +1,48 @@
+#[cfg(test)]
+mod tests {
+  #[test]
+  fn test_breakpoint_label() {
+    assert_eq!(super::breakpoint_label(100.0), "xs");
+    assert_eq!(super::breakpoint_label(639.9), "xs");
+    assert_eq!(super::breakpoint_label(640.0), "sm");
+    assert_eq!(super::breakpoint_label(767.9), "sm");
+    assert_eq!(super::breakpoint_label(768.0), "md");
+    assert_eq!(super::breakpoint_label(1023.9), "md");
+    assert_eq!(super::breakpoint_label(1024.0), "lg");
+    assert_eq!(super::breakpoint_label(1279.9), "lg");
+    assert_eq!(super::breakpoint_label(1280.0), "xl");
+    assert_eq!(super::breakpoint_label(1535.9), "xl");
+    assert_eq!(super::breakpoint_label(1536.0), "2xl");
+    assert_eq!(super::breakpoint_label(2000.0), "2xl");
+  }
+}
+
+fn breakpoint_label(width: f64) -> &'static str {
+  const XS: &str = "xs";
+  const SM: &str = "sm";
+  const MD: &str = "md";
+  const LG: &str = "lg";
+  const XL: &str = "xl";
+  const XXL: &str = "2xl";
+  match width {
+    w if w < 640.0 => XS,
+    w if w < 768.0 => SM,
+    w if w < 1024.0 => MD,
+    w if w < 1280.0 => LG,
+    w if w < 1536.0 => XL,
+    _ => XXL,
+  }
+}
+
 use gpui::prelude::*;
 use gpui::{App, Empty, Window, black, div, white};
 
-/// A debug-only indicator that shows the current Tailwind CSS breakpoint.
-///
-/// This component is only rendered in debug builds and helps developers
-/// identify the current responsive breakpoint based on the window width.
-/// The indicator displays one of the following labels:
-/// "xs", "sm", "md", "lg", "xl", or "2xl".
-///
-/// The indicator is styled to be unobtrusive, positioned at the bottom-left corner
-/// of the window with a semi-transparent background.
-#[derive(IntoElement, Default)]
+/// Debug-only indicator for Tailwind CSS breakpoints.
+#[derive(IntoElement, Default, Debug)]
 pub struct TailwindIndicator {}
 
 impl TailwindIndicator {
+  #[must_use]
   pub fn new() -> Self {
     Self::default()
   }
@@ -26,19 +55,7 @@ impl RenderOnce for TailwindIndicator {
     }
 
     let width = window.bounds().size.width.to_f64();
-    let text = if width < 640.0 {
-      "xs"
-    } else if width < 768.0 {
-      "sm"
-    } else if width < 1024.0 {
-      "md"
-    } else if width < 1280.0 {
-      "lg"
-    } else if width < 1536.0 {
-      "xl"
-    } else {
-      "2xl"
-    };
+    let text = breakpoint_label(width);
 
     div()
       .id("tailwind-indicator")
