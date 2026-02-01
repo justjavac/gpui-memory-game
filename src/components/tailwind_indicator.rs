@@ -1,21 +1,4 @@
-#[cfg(test)]
-mod tests {
-  #[test]
-  fn test_breakpoint_label() {
-    assert_eq!(super::breakpoint_label(100.0), "xs");
-    assert_eq!(super::breakpoint_label(639.9), "xs");
-    assert_eq!(super::breakpoint_label(640.0), "sm");
-    assert_eq!(super::breakpoint_label(767.9), "sm");
-    assert_eq!(super::breakpoint_label(768.0), "md");
-    assert_eq!(super::breakpoint_label(1023.9), "md");
-    assert_eq!(super::breakpoint_label(1024.0), "lg");
-    assert_eq!(super::breakpoint_label(1279.9), "lg");
-    assert_eq!(super::breakpoint_label(1280.0), "xl");
-    assert_eq!(super::breakpoint_label(1535.9), "xl");
-    assert_eq!(super::breakpoint_label(1536.0), "2xl");
-    assert_eq!(super::breakpoint_label(2000.0), "2xl");
-  }
-}
+
 
 fn breakpoint_label(width: f64) -> &'static str {
   const XS: &str = "xs";
@@ -76,3 +59,22 @@ impl RenderOnce for TailwindIndicator {
       .into_any_element()
   }
 }
+
+    #[cfg(test)]
+    mod tests {
+      #[test]
+      fn test_breakpoint_label() {
+        assert_eq!(super::breakpoint_label(100.0), "xs");
+        assert_eq!(super::breakpoint_label(639.9), "xs");
+        assert_eq!(super::breakpoint_label(640.0), "sm");
+        assert_eq!(super::breakpoint_label(767.9), "sm");
+        assert_eq!(super::breakpoint_label(768.0), "md");
+        assert_eq!(super::breakpoint_label(1023.9), "md");
+        assert_eq!(super::breakpoint_label(1024.0), "lg");
+        assert_eq!(super::breakpoint_label(1279.9), "lg");
+        assert_eq!(super::breakpoint_label(1280.0), "xl");
+        assert_eq!(super::breakpoint_label(1535.9), "xl");
+        assert_eq!(super::breakpoint_label(1536.0), "2xl");
+        assert_eq!(super::breakpoint_label(2000.0), "2xl");
+      }
+    }
