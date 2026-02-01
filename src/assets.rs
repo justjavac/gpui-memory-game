@@ -38,3 +38,22 @@ impl AssetSource for Assets {
     )
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn load_empty_path_returns_none() {
+    let a = Assets;
+    let res = a.load("");
+    assert!(res.unwrap().is_none());
+  }
+
+  #[test]
+  fn list_returns_ok() {
+    let a = Assets;
+    let list = a.list("icons/");
+    assert!(list.is_ok());
+  }
+}

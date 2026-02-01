@@ -161,3 +161,17 @@ impl Render for MemoryGame {
       .child(TailwindIndicator::new())
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn new_initializes() {
+    let mg = MemoryGame::new();
+    assert_eq!(mg.cards.len(), TOTAL_CARDS);
+    assert_eq!(mg.matches, 0);
+    assert!(mg.flipped_indexes.is_empty());
+    assert!(!mg.is_checking);
+  }
+}

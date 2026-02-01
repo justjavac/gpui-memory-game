@@ -53,3 +53,25 @@ pub fn create_cards() -> SmallVec<[MemoryCard; 12]> {
 
   cards
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use std::collections::HashMap;
+
+  #[test]
+  fn create_cards_has_pairs() {
+    let cards = create_cards();
+    assert_eq!(cards.len(), TOTAL_CARDS);
+
+    let mut counts: HashMap<String, usize> = HashMap::new();
+    for c in cards.iter() {
+      *counts.entry(c.icon.to_string()).or_insert(0) += 1;
+    }
+
+    assert_eq!(counts.len(), CARD_PAIRS as usize);
+    for (_k, v) in counts {
+      assert_eq!(v, 2);
+    }
+  }
+}
