@@ -112,6 +112,16 @@ impl MemoryGame {
     self.is_checking = false;
     cx.notify();
   }
+
+  /// Return the number of matches found. Added for testing/inspection.
+  pub fn matches_count(&self) -> u8 {
+    self.matches
+  }
+
+  /// Return number of cards. Added for testing/inspection.
+  pub fn cards_count(&self) -> usize {
+    self.cards.len()
+  }
 }
 
 impl Render for MemoryGame {
