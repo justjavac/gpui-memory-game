@@ -1,4 +1,5 @@
 use crate::styled::StyledExt;
+use crate::utils::CARD_PAIRS;
 use gpui::prelude::*;
 use gpui::{App, FontWeight, Window, div};
 
@@ -35,7 +36,7 @@ impl RenderOnce for Header {
       .child(
         div()
           .text_indigo_200()
-          .child(format!("Matches found: {} of {}", self.matches, 6)),
+          .child(format!("Matches found: {} of {}", self.matches, CARD_PAIRS)),
       )
   }
 }

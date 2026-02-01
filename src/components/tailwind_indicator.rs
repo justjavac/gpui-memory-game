@@ -10,12 +10,12 @@ use gpui::{App, Empty, Window, black, div, white};
 ///
 /// The indicator is styled to be unobtrusive, positioned at the bottom-left corner
 /// of the window with a semi-transparent background.
-#[derive(IntoElement)]
+#[derive(IntoElement, Default)]
 pub struct TailwindIndicator {}
 
 impl TailwindIndicator {
   pub fn new() -> Self {
-    Self {}
+    Self::default()
   }
 }
 

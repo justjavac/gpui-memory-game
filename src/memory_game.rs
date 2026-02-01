@@ -1,7 +1,7 @@
 use crate::colors::*;
 use crate::components::*;
 use crate::styled::StyledExt;
-use crate::utils::create_cards;
+use crate::utils::{CARD_PAIRS, TOTAL_CARDS, create_cards};
 use gpui::prelude::*;
 use gpui::{Context, Window, div, linear_color_stop, linear_gradient};
 use smallvec::{SmallVec, smallvec};
@@ -15,9 +15,9 @@ use std::time::Duration;
 /// The rendering logic uses GPUI's element system to create a responsive and visually appealing game interface.
 pub struct MemoryGame {
   /// The collection of memory cards in the game.
-  cards: SmallVec<[MemoryCard; 12]>,
+  cards: SmallVec<[MemoryCard; TOTAL_CARDS]>,
   /// Indexes of currently flipped cards.
-  flipped_indexes: SmallVec<[usize; 12]>,
+  flipped_indexes: SmallVec<[usize; TOTAL_CARDS]>,
   /// The number of matches found so far.
   matches: u8,
   /// Flag indicating if the game is currently checking for a match.
@@ -66,10 +66,9 @@ impl MemoryGame {
     let first_idx = self.flipped_indexes[0];
     let second_idx = self.flipped_indexes[1];
 
-    let first_card = self.cards[self.flipped_indexes[0]].clone();
-    let second_card = self.cards[self.flipped_indexes[1]].clone();
+    let is_match = self.cards[first_idx].icon == self.cards[second_idx].icon;
 
-    if first_card.icon == second_card.icon {
+    if is_match {
       cx.spawn(async move |this, cx| {
         cx.background_executor().timer(Duration::from_millis(500)).await;
         this
@@ -81,7 +80,7 @@ impl MemoryGame {
             this.is_checking = false;
 
             // Check for game completion
-            if this.matches == this.cards.len() as u8 / 2 {
+            if this.matches == CARD_PAIRS {
               println!("Game Over!");
             }
             cx.notify()

@@ -5,6 +5,12 @@ use rand::seq::SliceRandom;
 use smallvec::{SmallVec, smallvec};
 use std::sync::LazyLock;
 
+/// Number of unique card pairs in the game.
+pub const CARD_PAIRS: u8 = 6;
+
+/// Total number of cards in the game (pairs * 2).
+pub const TOTAL_CARDS: usize = (CARD_PAIRS * 2) as usize;
+
 /// Predefined icon and color configurations for the memory cards.
 /// Each tuple contains the path to the icon and its associated color.
 /// This static variable is lazily initialized to ensure efficient memory usage.
