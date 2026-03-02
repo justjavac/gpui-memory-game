@@ -9,9 +9,9 @@ use std::time::Duration;
 
 /// The main memory game component managing game state and rendering.
 ///
-/// It handles user interactions, game logic, and the overall layout of the memory game.  
-/// The component maintains the state of the cards, flipped cards, and match count.  
-/// It provides methods to flip cards, check for matches, and reset the game.  
+/// It handles user interactions, game logic, and the overall layout of the memory game.
+/// The component maintains the state of the cards, flipped cards, and match count.
+/// It provides methods to flip cards, check for matches, and reset the game.
 /// The rendering logic uses GPUI's element system to create a responsive and visually appealing game interface.
 pub struct MemoryGame {
   /// The collection of memory cards in the game.
@@ -111,16 +111,6 @@ impl MemoryGame {
     self.matches = 0;
     self.is_checking = false;
     cx.notify();
-  }
-
-  /// Return the number of matches found. Added for testing/inspection.
-  pub fn matches_count(&self) -> u8 {
-    self.matches
-  }
-
-  /// Return number of cards. Added for testing/inspection.
-  pub fn cards_count(&self) -> usize {
-    self.cards.len()
   }
 }
 
