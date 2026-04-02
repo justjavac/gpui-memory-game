@@ -1,7 +1,9 @@
 use crate::colors::*;
 use crate::styled::StyledExt;
 use gpui::prelude::*;
-use gpui::{Animation, AnimationExt, App, ClickEvent, Hsla, SharedString, Transformation, Window, div, size, svg};
+use gpui::{
+  Animation, AnimationExt, App, ClickEvent, Empty, Hsla, SharedString, Transformation, Window, div, size, svg,
+};
 use std::time::Duration;
 
 /// Represents a memory card with an icon, color, and matched state.
@@ -85,7 +87,7 @@ impl RenderOnce for Card {
           .hover(|this| this.border_indigo_600().bg(indigo_900().alpha(0.82)))
           .on_click(self.on_click)
       })
-      .child(
+      .child(if is_face_up {
         svg()
           .path(self.card.icon.clone())
           .text_color(self.card.color)
@@ -93,18 +95,17 @@ impl RenderOnce for Card {
           .when(width >= 640.0, |this| this.size_12())
           .when(self.card.is_matched, |this| this.shadow_lg())
           .with_animation(
-            if is_face_up {
-              ("card-icon-up", self.id)
-            } else {
-              ("card-icon-down", self.id)
-            },
+            ("card-icon-up", self.id),
             Animation::new(Duration::from_millis(260)),
             |this, delta| {
               let scale = 0.85 + (delta * 0.15);
               this.with_transformation(Transformation::scale(size(scale, scale)))
             },
-          ),
-      )
+          )
+          .into_any_element()
+      } else {
+        Empty {}.into_any_element()
+      })
   }
 }
 

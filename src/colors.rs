@@ -83,11 +83,6 @@ pub fn yellow_400() -> Hsla {
 }
 
 #[inline]
-pub fn indigo_700() -> Hsla {
-  hsla(244.5 / 360.0, 0.579, 0.506, 1.0)
-}
-
-#[inline]
 pub fn indigo_100() -> Hsla {
   hsla(226.5 / 360.0, 1.0, 0.939, 1.0)
 }
