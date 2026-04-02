@@ -19,6 +19,7 @@ pub fn button(
     .items_center()
     .justify_center()
     .flex_shrink_0()
+    .cursor_pointer()
     .bg(indigo_900().alpha(0.95))
     .border_1()
     .border_color(indigo_500().alpha(0.4))
