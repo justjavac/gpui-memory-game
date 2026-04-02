@@ -198,7 +198,7 @@ impl Render for MemoryGame {
         linear_color_stop(slate_950(), 1.0),
       ))
       .overflow_scroll()
-      .child(Header::new(self.matches, self.status_message()))
+      .child(Header::new(self.matches, self.status_message(), self.is_complete()))
       .child(
         div()
           .flex()
