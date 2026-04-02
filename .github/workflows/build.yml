@@ -25,7 +25,7 @@ on:
 
 jobs:
   build:
-    name: ${{ matrix.kind }} ${{ matrix.os }}
+    name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -43,7 +43,7 @@ jobs:
 
     steps:
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install system dependencies
         if: startsWith(matrix.os, 'ubuntu')
@@ -71,19 +71,15 @@ jobs:
           cargo --version
 
       - name: Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |-
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/*/.*
-            target/*/build
-            target/*/deps
-          key:
-            ${{ matrix.config.os }}-${{ hashFiles('Cargo.lock') }}
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
-            ${{ matrix.config.os }}-
+            ${{ runner.os }}-cargo-
 
       - name: Run cargo fmt
         run: cargo fmt --all -- --check
@@ -116,12 +112,12 @@ jobs:
         working-directory: target/release
 
       - name: Pre-release (mac)
-        if: matrix.os == 'macOS-13'
+        if: matrix.os == 'macos-15-intel'
         run: zip -r gpui-memory-game-x86_64-apple-darwin.zip gpui-memory-game.app
         working-directory: target/release
 
       - name: Pre-release (aarch64-apple-darwin)
-        if: matrix.os == 'macOS-latest'
+        if: matrix.os == 'macos-latest'
         run: zip -r gpui-memory-game-aarch64-apple-darwin.zip gpui-memory-game.app
         working-directory: target/release
 
