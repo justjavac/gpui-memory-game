@@ -8,6 +8,9 @@ mod memory_game;
 mod styled;
 mod utils;
 
+#[cfg(test)]
+mod integration_tests;
+
 use assets::Assets;
 use gpui::prelude::*;
 use gpui::{App, Application, Bounds, KeyBinding, TitlebarOptions, WindowBounds, WindowKind, WindowOptions};
