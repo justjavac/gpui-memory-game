@@ -7,8 +7,8 @@ use gpui::{Context, Window, div, linear_color_stop, linear_gradient};
 use smallvec::{SmallVec, smallvec};
 use std::time::Duration;
 
-const MATCH_DELAY: Duration = Duration::from_millis(500);
-const MISMATCH_DELAY: Duration = Duration::from_millis(1000);
+const MATCH_DELAY: Duration = Duration::from_millis(420);
+const MISMATCH_DELAY: Duration = Duration::from_millis(760);
 
 /// The main memory game component managing game state and rendering.
 ///
@@ -190,26 +190,31 @@ impl Render for MemoryGame {
       .flex_col()
       .items_center()
       .size_full()
-      .p_4()
-      .gap_y_8()
+      .p_3()
+      .gap_y_6()
       .bg(linear_gradient(
         0.5,
         linear_color_stop(purple_950(), 0.0),
         linear_color_stop(slate_950(), 1.0),
       ))
       .overflow_scroll()
+      .when(width >= 768.0, |this| this.p_4().gap_y_8())
       .child(Header::new(self.matches, self.status_message(), self.is_complete()))
       .child(
         div()
           .flex()
           .flex_wrap()
           .justify_center()
-          .gap_4()
-          .p_6()
-          .w_128()
+          .gap_3()
+          .p_4()
+          .w_96()
           .rounded_xl()
-          .bg_indigo_950()
-          .when(width > 768.0, |this| this.gap_6())
+          .bg(indigo_950().alpha(0.92))
+          .border_1()
+          .border_indigo_800()
+          .shadow_lg()
+          .when(width >= 640.0, |this| this.w_112().gap_4().p_5())
+          .when(width >= 960.0, |this| this.w_128().gap_5().p_6())
           .children(self.cards.iter().enumerate().map(|(index, card)| {
             Card::new(
               index,
@@ -221,12 +226,24 @@ impl Render for MemoryGame {
             )
           })),
       )
-      .child(button(
-        self.reset_button_label(),
-        cx.listener(|this, _: &gpui::ClickEvent, _, cx| {
-          this.reset_game(cx);
-        }),
-      ))
+      .child(
+        div()
+          .flex()
+          .flex_col()
+          .items_center()
+          .gap_y_2()
+          .child(button(
+            self.reset_button_label(),
+            cx.listener(|this, _: &gpui::ClickEvent, _, cx| {
+              this.reset_game(cx);
+            }),
+          ))
+          .child(
+            div()
+              .text_indigo_200()
+              .child("Fresh shuffles keep every round feeling different."),
+          ),
+      )
       .child(TailwindIndicator::new())
   }
 }

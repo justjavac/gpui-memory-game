@@ -52,6 +52,7 @@ impl Card {
 impl RenderOnce for Card {
   fn render(self, window: &mut Window, _cx: &mut App) -> impl IntoElement {
     let width = window.bounds().size.width.to_f64();
+    let is_face_up = self.card.is_matched || self.is_flipped;
 
     div()
       .id(self.id)
@@ -59,34 +60,49 @@ impl RenderOnce for Card {
       .flex()
       .items_center()
       .justify_center()
-      .size_24()
+      .size_20()
       .border_1()
       .border_color(indigo_400().alpha(0.5))
       .bg(indigo_900().alpha(0.5))
-      .rounded_lg()
+      .rounded_xl()
       .shadow_lg()
       .cursor_pointer()
-      .when(width > 768.0, |this| this.size_32())
-      .when(self.card.is_matched || self.is_flipped, |this| {
-        this.bg(indigo_800().alpha(0.5)).border_color(indigo_500().alpha(0.5))
+      .when(width >= 640.0, |this| this.size_24())
+      .when(width >= 1100.0, |this| this.size_32())
+      .when(is_face_up, |this| {
+        this.bg(indigo_800().alpha(0.55)).border_color(indigo_500().alpha(0.5))
+      })
+      .when(self.card.is_matched, |this| {
+        this
+          .bg(self.card.color.alpha(0.16))
+          .border_color(self.card.color.alpha(0.45))
+          .shadow_xl()
       })
       .when(!self.card.is_matched && !self.is_flipped, |this| {
         this
           .bg_indigo_950()
           .border_indigo_800()
-          .hover(|this| this.border_indigo_600().bg(indigo_900().alpha(0.8)))
+          .hover(|this| this.border_indigo_600().bg(indigo_900().alpha(0.82)))
           .on_click(self.on_click)
       })
       .child(
         svg()
           .path(self.card.icon.clone())
           .text_color(self.card.color)
-          .when(self.card.is_matched, |this| this.shadow_lg().size_12())
-          .when(self.is_flipped, |this| this.size_12())
+          .size_10()
+          .when(width >= 640.0, |this| this.size_12())
+          .when(self.card.is_matched, |this| this.shadow_lg())
           .with_animation(
-            "card-flip",
-            Animation::new(Duration::from_millis(300)),
-            |this, delta| this.with_transformation(Transformation::scale(size(delta, delta))),
+            if is_face_up {
+              ("card-icon-up", self.id)
+            } else {
+              ("card-icon-down", self.id)
+            },
+            Animation::new(Duration::from_millis(260)),
+            |this, delta| {
+              let scale = 0.85 + (delta * 0.15);
+              this.with_transformation(Transformation::scale(size(scale, scale)))
+            },
           ),
       )
   }

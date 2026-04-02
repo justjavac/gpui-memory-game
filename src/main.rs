@@ -50,7 +50,7 @@ fn main() {
       title: Some("Memory Match Game".into()),
       ..Default::default()
     };
-    let min_size = size(px(800.0), px(850.0));
+    let min_size = size(px(560.0), px(720.0));
     let bounds = Bounds::centered(None, min_size, cx);
     let options = WindowOptions {
       window_bounds: Some(WindowBounds::Windowed(bounds)),

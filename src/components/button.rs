@@ -1,6 +1,7 @@
+use crate::colors::{indigo_400, indigo_500, indigo_800, indigo_900};
 use crate::styled::StyledExt;
 use gpui::prelude::*;
-use gpui::{App, ClickEvent, Window, div};
+use gpui::{App, ClickEvent, FontWeight, Window, div, white};
 
 /// Creates a styled button element for restarting the game.
 ///
@@ -18,15 +19,21 @@ pub fn button(
     .items_center()
     .justify_center()
     .flex_shrink_0()
-    .bg_indigo_950()
+    .bg(indigo_900().alpha(0.95))
     .border_1()
-    .border_indigo_700()
-    .text_indigo_200()
-    .h_10()
-    .px_8()
-    .rounded_md()
-    .shadow_sm()
-    .hover(|this| this.bg_indigo_900().border_indigo_500().text_indigo_100())
+    .border_color(indigo_500().alpha(0.4))
+    .text_indigo_100()
+    .font_weight(FontWeight::SEMIBOLD)
+    .h_11()
+    .px_10()
+    .rounded_full()
+    .shadow_lg()
+    .hover(|this| {
+      this
+        .bg(indigo_800().alpha(0.95))
+        .border_color(indigo_400().alpha(0.55))
+        .text_color(white())
+    })
     .on_click(on_click)
     .child(label)
 }

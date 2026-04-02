@@ -18,20 +18,12 @@ pub trait StyledExt: Styled {
     self.border_color(indigo_600())
   }
 
-  fn border_indigo_500(self) -> Self {
-    self.border_color(indigo_500())
-  }
-
   fn border_indigo_700(self) -> Self {
     self.border_color(indigo_700())
   }
 
   fn border_indigo_800(self) -> Self {
     self.border_color(indigo_800())
-  }
-
-  fn bg_indigo_900(self) -> Self {
-    self.bg(indigo_900())
   }
 
   fn bg_indigo_950(self) -> Self {
