@@ -12,11 +12,12 @@ use gpui::{App, FontWeight, Window, div};
 #[derive(IntoElement)]
 pub struct Header {
   matches: u8,
+  status: &'static str,
 }
 
 impl Header {
-  pub fn new(matches: u8) -> Self {
-    Self { matches }
+  pub fn new(matches: u8, status: &'static str) -> Self {
+    Self { matches, status }
   }
 }
 
@@ -38,6 +39,7 @@ impl RenderOnce for Header {
           .text_indigo_200()
           .child(format!("Matches found: {} of {}", self.matches, CARD_PAIRS)),
       )
+      .child(div().text_indigo_100().child(self.status))
   }
 }
 
@@ -47,8 +49,9 @@ mod tests {
 
   #[test]
   fn header_new_sets_matches() {
-    let h = Header::new(2);
+    let h = Header::new(2, "Keep going!");
     // cannot call render without GPUI runtime, but can verify stored value
     assert_eq!(h.matches, 2);
+    assert_eq!(h.status, "Keep going!");
   }
 }

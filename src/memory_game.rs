@@ -7,6 +7,9 @@ use gpui::{Context, Window, div, linear_color_stop, linear_gradient};
 use smallvec::{SmallVec, smallvec};
 use std::time::Duration;
 
+const MATCH_DELAY: Duration = Duration::from_millis(500);
+const MISMATCH_DELAY: Duration = Duration::from_millis(1000);
+
 /// The main memory game component managing game state and rendering.
 ///
 /// It handles user interactions, game logic, and the overall layout of the memory game.
@@ -71,8 +74,38 @@ impl MemoryGame {
     true
   }
 
+  fn is_complete(&self) -> bool {
+    self.matches == CARD_PAIRS
+  }
+
+  fn is_card_flipped(&self, index: usize) -> bool {
+    self.flipped_indexes.contains(&index)
+  }
+
+  fn status_message(&self) -> &'static str {
+    if self.is_complete() {
+      "You found every pair. Nice run!"
+    } else if self.is_checking {
+      "Checking the cards..."
+    } else {
+      "Flip two cards to find a match."
+    }
+  }
+
+  fn reset_button_label(&self) -> &'static str {
+    if self.is_complete() {
+      "Play Again"
+    } else {
+      "Start New Game"
+    }
+  }
+
   /// Flips a card at the given index and checks for matches if two cards are flipped.
   pub fn flip_card(&mut self, index: usize, cx: &mut Context<Self>) {
+    if index >= self.cards.len() {
+      return;
+    }
+
     // Prevent clicking if already checking
     if self.is_checking {
       return;
@@ -107,17 +140,13 @@ impl MemoryGame {
 
     if is_match {
       cx.spawn(async move |this, cx| {
-        cx.background_executor().timer(Duration::from_millis(500)).await;
+        cx.background_executor().timer(MATCH_DELAY).await;
         this
           .update(cx, |this, cx| {
             if !this.resolve_match(first_idx, second_idx, generation) {
               return;
             }
 
-            // Check for game completion
-            if this.matches == CARD_PAIRS {
-              println!("Game Over!");
-            }
             cx.notify()
           })
           .ok()
@@ -126,7 +155,7 @@ impl MemoryGame {
     } else {
       // If the cards don't match, flip them back over after a delay
       cx.spawn(async move |this, cx| {
-        cx.background_executor().timer(Duration::from_millis(1000)).await;
+        cx.background_executor().timer(MISMATCH_DELAY).await;
         this
           .update(cx, |this, cx| {
             if !this.resolve_mismatch(generation) {
@@ -169,7 +198,7 @@ impl Render for MemoryGame {
         linear_color_stop(slate_950(), 1.0),
       ))
       .overflow_scroll()
-      .child(Header::new(self.matches))
+      .child(Header::new(self.matches, self.status_message()))
       .child(
         div()
           .flex()
@@ -185,16 +214,19 @@ impl Render for MemoryGame {
             Card::new(
               index,
               card.clone(),
-              self.flipped_indexes.contains(&index),
+              self.is_card_flipped(index),
               cx.listener(move |this, _, _, cx| {
                 this.flip_card(index, cx);
               }),
             )
           })),
       )
-      .child(button(cx.listener(|this, _: &gpui::ClickEvent, _, cx| {
-        this.reset_game(cx);
-      })))
+      .child(button(
+        self.reset_button_label(),
+        cx.listener(|this, _: &gpui::ClickEvent, _, cx| {
+          this.reset_game(cx);
+        }),
+      ))
       .child(TailwindIndicator::new())
   }
 }
@@ -241,5 +273,19 @@ mod tests {
     assert_eq!(mg.matches, 1);
     assert!(mg.flipped_indexes.is_empty());
     assert!(!mg.is_checking);
+  }
+
+  #[test]
+  fn status_message_reflects_game_state() {
+    let mut mg = MemoryGame::new();
+    assert_eq!(mg.status_message(), "Flip two cards to find a match.");
+
+    mg.is_checking = true;
+    assert_eq!(mg.status_message(), "Checking the cards...");
+
+    mg.is_checking = false;
+    mg.matches = CARD_PAIRS;
+    assert_eq!(mg.status_message(), "You found every pair. Nice run!");
+    assert_eq!(mg.reset_button_label(), "Play Again");
   }
 }
