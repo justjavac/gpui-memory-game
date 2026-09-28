@@ -101,6 +101,10 @@ jobs:
 
       - name: Package release
         run: |-
+          # target/ is restored from a cache shared by all Linux arch runners, so it can
+          # contain stale AppImages from older releases/other archs. Remove them before
+          # packaging so only this run's artifacts are produced and uploaded.
+          rm -f target/release/gpui-memory-game_*.AppImage
           cargo install cargo-packager
           cargo packager --release
 
@@ -113,7 +117,9 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          appimage="$(ls -1 target/release/gpui-memory-game_*.AppImage | head -n1)"
+          # target/ is cached across OS only (not per-arch), so stale AppImages from
+          # other architectures/versions may linger here; pick the newest one.
+          appimage="$(ls -1t target/release/gpui-memory-game_*.AppImage 2>/dev/null | head -n1)"
           [ -n "$appimage" ]
           cp "$appimage" /tmp/gpui-memory-game.AppImage
           rm -rf /tmp/squashfs-root
