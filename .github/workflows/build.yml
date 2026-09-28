@@ -99,12 +99,19 @@ jobs:
       - name: Build release
         run: cargo build --release --locked
 
-      # target/ is restored from a cache shared by all Linux arch runners, so it can
-      # contain stale AppImages from older releases/other archs. Remove them before
-      # packaging so only this run's artifacts are produced and uploaded.
-      - name: Clean stale AppImages
+      # target/ is restored from a cache shared by every runner of the same OS (and
+      # across Linux arch runners), so it can contain packaged artifacts from older
+      # releases/other archs. Remove them before packaging so only this run's freshly
+      # built artifacts exist and get uploaded.
+      - name: Clean stale packaged artifacts
         shell: bash
-        run: rm -f target/release/gpui-memory-game_*.AppImage
+        run: |
+          rm -f target/release/gpui-memory-game_*.AppImage \
+                target/release/gpui-memory-game_*.dmg \
+                target/release/gpui-memory-game_*.msi \
+                target/release/gpui-memory-game_*-setup.exe \
+                target/release/gpui-memory-game_*.deb \
+                target/release/gpui-memory-game_*.tar.gz
 
       - name: Package release
         run: |-
