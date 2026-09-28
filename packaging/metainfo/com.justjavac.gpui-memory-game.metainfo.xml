@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.justjavac.gpui-memory-game</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Memory Match Game</name>
+  <summary>Memory match game built with Rust and GPUI</summary>
+  <description>
+    <p>A classic memory match game built with Rust and GPUI. Flip cards and
+    find all the matching pairs, themed around cute icons such as a cloud,
+    flower, heart, moon, star, sun and trophy.</p>
+  </description>
+  <launchable type="desktop-id">gpui-memory-game.desktop</launchable>
+  <url type="homepage">https://github.com/justjavac/gpui-memory-game</url>
+  <developer_name>justjavac</developer_name>
+  <categories>
+    <category>Game</category>
+  </categories>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Gameplay</caption>
+      <image>https://raw.githubusercontent.com/justjavac/gpui-memory-game/main/assets/screenshot.png</image>
+    </screenshot>
+  </screenshots>
+  <releases>
+    <release version="0.2.1" date="2025-10-23"/>
+  </releases>
+</component>

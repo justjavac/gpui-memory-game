@@ -30,7 +30,10 @@ jobs:
     strategy:
       matrix:
         os:
-          - ubuntu-latest
+          # Ubuntu 22.04 (glibc 2.35) instead of ubuntu-latest (24.04, glibc 2.39) so the
+          # AppImage runs on older distributions. gpui needs webkit2gtk-4.1, which is not
+          # available on Ubuntu 20.04, so 22.04 is the oldest feasible build base.
+          - ubuntu-22.04
           - ubuntu-24.04-arm
           - macos-15-intel # Intel
           - macos-latest # Apple Silicon
@@ -55,7 +58,7 @@ jobs:
               libx11-xcb-dev libxcb1-dev \
               libssl-dev libzstd-dev \
               vulkan-validationlayers libvulkan1 \
-              mold
+              mold squashfs-tools
 
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
@@ -101,8 +104,42 @@ jobs:
           cargo install cargo-packager
           cargo packager --release
 
+      # cargo-packager's AppImage can embed AppRun and the main binary with owner-only
+      # exec bits (e.g. 0744), so non-root users get "Permission denied" at startup,
+      # which fails the AppImage.appimage.github.io catalog test. Fix by extracting the
+      # AppImage, making every file world-executable/readable and re-packaging it.
+      - name: Make AppImage world-executable
+        if: startsWith(matrix.os, 'ubuntu')
+        shell: bash
+        run: |
+          set -euxo pipefail
+          appimage="$(ls -1 target/release/gpui-memory-game_*.AppImage | head -n1)"
+          [ -n "$appimage" ]
+          cp "$appimage" /tmp/gpui-memory-game.AppImage
+          rm -rf /tmp/squashfs-root
+          (cd /tmp && ./gpui-memory-game.AppImage --appimage-extract && rm gpui-memory-game.AppImage)
+          chmod -R a+rX /tmp/squashfs-root
+          if [ "${{ runner.arch }}" = "ARM64" ]; then
+            tool_url="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-aarch64.AppImage"
+          else
+            tool_url="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
+          fi
+          curl -fsSL "$tool_url" -o /tmp/appimagetool.AppImage
+          chmod +x /tmp/appimagetool.AppImage
+          # Run appimagetool without FUSE and overwrite the original AppImage
+          /tmp/appimagetool.AppImage --appimage-extract-and-run /tmp/squashfs-root "$PWD/${appimage}"
+          # Verify the re-packaged AppImage: its AppRun must be executable by everyone
+          rm -rf /tmp/squashfs-root
+          cp "$appimage" /tmp/gpui-memory-game-check.AppImage
+          (cd /tmp && ./gpui-memory-game-check.AppImage --appimage-extract >/dev/null)
+          mode="$(stat -c '%a' /tmp/squashfs-root/AppRun)"
+          rm -f /tmp/gpui-memory-game-check.AppImage
+          rm -rf /tmp/squashfs-root
+          [ "$mode" = "755" ] || { echo "ERROR: AppRun mode is $mode, expected 755" >&2; exit 1; }
+          echo "AppRun permissions OK ($mode)"
+
       - name: Pre-release (linux x86_64)
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-22.04'
         run: zip -r gpui-memory-game-x86_64-unknown-linux-gnu.zip gpui-memory-game
         working-directory: target/release
 

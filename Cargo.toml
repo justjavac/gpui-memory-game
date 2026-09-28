@@ -44,6 +44,10 @@ copyright = "Copyright (c) justjavac 2025. All rights reserved."
 category = "Game"
 icons = ["assets/icon-*.png"]
 
+# AppStream metadata for the AppImage (used by appimage.github.io / app centers)
+[package.metadata.packager.appimage]
+files = { "packaging/metainfo/com.justjavac.gpui-memory-game.metainfo.xml" = "usr/share/metainfo/com.justjavac.gpui-memory-game.metainfo.xml" }
+
 [package.metadata.packager.macos]
 entitlements = "macos/entitlements.plist"
 
