@@ -179,30 +179,41 @@ jobs:
           json.dump(d, open(p, "w"), indent=2)
           PYEO
 
-          # 3. enable the bundled driver only when the system has no Vulkan drivers at
-          #    all. The AppImageKit AppRun locates its *.desktop file relative
-          #    to its own directory, so it must stay at the AppDir root; inject
-          #    the fallback right after the shebang instead of wrapping it.
-          python3 - "$root/AppRun" "$icd" "$triplet" <<'PYEO'
-          import sys
+          # 3. replace AppRun with our own wrapper: enable the bundled lavapipe driver
+          #    only when no system Vulkan driver exists, then run the packaged
+          #    binary. (The stock AppImageKit AppRun is not reused because its
+          #    relative *.desktop lookup breaks when moved, and its first bytes
+          #    vary across packager versions/arches.)
+          cat > "$root/AppRun" <<'WRAP'
+          #!/bin/bash
+          here="$(cd "$(dirname "$(readlink -f "${0}")")" && pwd)"
 
-          p, icd, triplet = sys.argv[1], sys.argv[2], sys.argv[3]
-          data = open(p, "rb").read()
-          nl = data.find(b"\n")
-          assert nl != -1 and data[:2] == b"#!", "AppRun has no shebang"
-          block = (
-              'APPDIR0="$(dirname "$(readlink -f "${0}")")"\n'
-              '# Use the bundled lavapipe software Vulkan driver only when no system\n'
-              '# Vulkan drivers exist (headless/CI/VMs); keep real drivers in front.\n'
-              'if ! compgen -G "/usr/share/vulkan/icd.d/*.json" >/dev/null 2>&1 && \\\n'
-              '   ! compgen -G "/etc/vulkan/icd.d/*.json" >/dev/null 2>&1; then\n'
-              '  export VK_ICD_FILENAMES="$APPDIR0/usr/share/vulkan/icd.d/%s"\n'
-              '  export VK_DRIVER_FILES="$APPDIR0/usr/share/vulkan/icd.d/%s"\n'
-              '  export LD_LIBRARY_PATH="$APPDIR0/usr/lib/%s${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"\n'
-              'fi\n' % (icd, icd, triplet)
-          ).encode()
-          open(p, "wb").write(data[: nl + 1] + block + data[nl + 1 :])
-          PYEO
+          # Use the bundled lavapipe software Vulkan driver only when no system
+          # Vulkan drivers exist (headless/CI/VMs); keep real drivers in front.
+          if ! compgen -G "/usr/share/vulkan/icd.d/*.json" >/dev/null 2>&1 && \
+             ! compgen -G "/etc/vulkan/icd.d/*.json" >/dev/null 2>&1; then
+            export VK_ICD_FILENAMES="$here/usr/share/vulkan/icd.d/{{ICD}}"
+            export VK_DRIVER_FILES="$here/usr/share/vulkan/icd.d/{{ICD}}"
+            export LD_LIBRARY_PATH="$here/usr/lib/{{TRIPLET}}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          fi
+
+          # Run the packaged binary the desktop entry points to.
+          desktop_file="$(find "$here" -maxdepth 1 -name '*.desktop' 2>/dev/null | head -n1)"
+          [ -n "$desktop_file" ] || desktop_file="$(find "$here/usr/share/applications" -maxdepth 1 -name '*.desktop' 2>/dev/null | head -n1)"
+          bin_name=""
+          [ -n "$desktop_file" ] && bin_name="$(grep '^Exec=' "$desktop_file" | head -n1 | cut -d'=' -f2- | tr -d '\r' | xargs | awk '{print $1}')"
+          if [ -n "$bin_name" ] && [ -x "$here/usr/bin/$bin_name" ]; then
+            exec "$here/usr/bin/$bin_name" "$@"
+          fi
+          for candidate in "$here/usr/bin/"* "$here/bin/"*; do
+            if [ -f "$candidate" ] && [ -x "$candidate" ]; then
+              exec "$candidate" "$@"
+            fi
+          done
+          echo "Error: unable to locate the application binary" >&2
+          exit 1
+          WRAP
+          sed -i -e "s/{{ICD}}/$icd/" -e "s/{{TRIPLET}}/$triplet/" "$root/AppRun"
           chmod 0755 "$root/AppRun"
 
           # 4. re-package with appimagetool (run without FUSE) and overwrite the AppImage
