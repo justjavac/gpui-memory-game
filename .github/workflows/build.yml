@@ -185,10 +185,11 @@ jobs:
           #    the fallback right after the shebang instead of wrapping it.
           python3 - "$root/AppRun" "$icd" "$triplet" <<'PYEO'
           import sys
+
           p, icd, triplet = sys.argv[1], sys.argv[2], sys.argv[3]
-          with open(p) as f:
-              lines = f.readlines()
-          assert lines[0].startswith("#!"), "AppRun has no shebang"
+          data = open(p, "rb").read()
+          nl = data.find(b"\n")
+          assert nl != -1 and data[:2] == b"#!", "AppRun has no shebang"
           block = (
               'APPDIR0="$(dirname "$(readlink -f "${0}")")"\n'
               '# Use the bundled lavapipe software Vulkan driver only when no system\n'
@@ -199,10 +200,8 @@ jobs:
               '  export VK_DRIVER_FILES="$APPDIR0/usr/share/vulkan/icd.d/%s"\n'
               '  export LD_LIBRARY_PATH="$APPDIR0/usr/lib/%s${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"\n'
               'fi\n' % (icd, icd, triplet)
-          )
-          lines.insert(1, block)
-          with open(p, "w") as f:
-              f.writelines(lines)
+          ).encode()
+          open(p, "wb").write(data[: nl + 1] + block + data[nl + 1 :])
           PYEO
           chmod 0755 "$root/AppRun"
 
