@@ -179,23 +179,31 @@ jobs:
           json.dump(d, open(p, "w"), indent=2)
           PYEO
 
-          # 3. wrap the original AppRun so the bundled driver is used only when the
-          #    system has no Vulkan drivers at all
-          mv "$root/AppRun" "$root/usr/bin/AppRun.orig"
-          cat > "$root/AppRun" <<'WRAP'
-          #!/bin/bash
-          here="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
-          # Use the bundled lavapipe software Vulkan driver only when no system Vulkan
-          # drivers exist (headless/CI/VMs); keep real drivers in front otherwise.
-          if ! compgen -G "/usr/share/vulkan/icd.d/*.json" >/dev/null 2>&1 && \
-             ! compgen -G "/etc/vulkan/icd.d/*.json" >/dev/null 2>&1; then
-            export VK_ICD_FILENAMES="$here/usr/share/vulkan/icd.d/{{ICD}}"
-            export VK_DRIVER_FILES="$here/usr/share/vulkan/icd.d/{{ICD}}"
-            export LD_LIBRARY_PATH="$here/usr/lib/{{TRIPLET}}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-          fi
-          exec "$here/usr/bin/AppRun.orig" "$@"
-          WRAP
-          sed -i -e "s/{{ICD}}/$icd/" -e "s/{{TRIPLET}}/$triplet/" "$root/AppRun"
+          # 3. enable the bundled driver only when the system has no Vulkan drivers at
+          #    all. The AppImageKit AppRun locates its *.desktop file relative
+          #    to its own directory, so it must stay at the AppDir root; inject
+          #    the fallback right after the shebang instead of wrapping it.
+          python3 - "$root/AppRun" "$icd" "$triplet" <<'PYEO'
+          import sys
+          p, icd, triplet = sys.argv[1], sys.argv[2], sys.argv[3]
+          with open(p) as f:
+              lines = f.readlines()
+          assert lines[0].startswith("#!"), "AppRun has no shebang"
+          block = (
+              'APPDIR0="$(dirname "$(readlink -f "${0}")")"\n'
+              '# Use the bundled lavapipe software Vulkan driver only when no system\n'
+              '# Vulkan drivers exist (headless/CI/VMs); keep real drivers in front.\n'
+              'if ! compgen -G "/usr/share/vulkan/icd.d/*.json" >/dev/null 2>&1 && \\\n'
+              '   ! compgen -G "/etc/vulkan/icd.d/*.json" >/dev/null 2>&1; then\n'
+              '  export VK_ICD_FILENAMES="$APPDIR0/usr/share/vulkan/icd.d/%s"\n'
+              '  export VK_DRIVER_FILES="$APPDIR0/usr/share/vulkan/icd.d/%s"\n'
+              '  export LD_LIBRARY_PATH="$APPDIR0/usr/lib/%s${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"\n'
+              'fi\n' % (icd, icd, triplet)
+          )
+          lines.insert(1, block)
+          with open(p, "w") as f:
+              f.writelines(lines)
+          PYEO
           chmod 0755 "$root/AppRun"
 
           # 4. re-package with appimagetool (run without FUSE) and overwrite the AppImage
@@ -208,7 +216,7 @@ jobs:
           cp "$appimage" /tmp/gpui-memory-game-check.AppImage
           (cd /tmp && ./gpui-memory-game-check.AppImage --appimage-extract >/dev/null)
           mode="$(stat -c '%a' /tmp/squashfs-root/AppRun)"
-          grep -q 'AppRun.orig' /tmp/squashfs-root/AppRun || { echo "ERROR: AppRun wrapper missing" >&2; exit 1; }
+          grep -q 'VK_ICD_FILENAMES' /tmp/squashfs-root/AppRun || { echo "ERROR: AppRun fallback missing" >&2; exit 1; }
           test -f /tmp/squashfs-root/usr/share/vulkan/icd.d/$icd || { echo "ERROR: lavapipe ICD missing" >&2; exit 1; }
           test -f /tmp/squashfs-root/usr/lib/$triplet/libvulkan_lvp.so || { echo "ERROR: lavapipe driver missing" >&2; exit 1; }
           rm -f /tmp/gpui-memory-game-check.AppImage
