@@ -234,17 +234,18 @@ jobs:
           [ "$mode" = "755" ] || { echo "ERROR: AppRun mode is $mode, expected 755" >&2; exit 1; }
           echo "AppRun permissions OK ($mode), lavapipe fallback bundled"
 
-      # Reproduce the exact AppImageHub test (Xvfb, DISPLAY, no system Vulkan
-      # ICD -> bundled lavapipe) on the build runner and keep the app's stderr.
-      # The official test reports ~30s without a window; measure the actual
-      # window latency here so failures can be debugged offline.
+      # Reproduce the exact AppImageHub test (Xvfb 800x600x24, DISPLAY set,
+      # no system Vulkan ICD -> bundled lavapipe) on the build runner.
+      # Phase 1 runs the app directly; phase 2 runs it inside the firejail
+      # sandbox like the official test does (the only env difference left
+      # between our CI and AppImageHub). Dumps both stderr logs.
       - name: Smoke test under Xvfb
         if: startsWith(matrix.os, 'ubuntu')
         continue-on-error: true
         shell: bash
         run: |
           set -uxo pipefail
-          sudo apt-get update -q && sudo apt-get install -y -q xvfb x11-utils || true
+          sudo apt-get update -q && sudo apt-get install -y -q xvfb x11-utils firejail || true
           if [ "${{ runner.arch }}" = "ARM64" ]; then
             triplet="aarch64-linux-gnu"
           else
@@ -252,7 +253,7 @@ jobs:
           fi
           appimage="$(ls -1t "$PWD"/target/release/gpui-memory-game_*.AppImage | head -n1)"
           echo "smoke-test appimage: $appimage"
-          Xvfb :97 -screen 0 1280x800x24 >/tmp/xvfb.log 2>&1 &
+          Xvfb :97 -screen 0 800x600x24 >/tmp/xvfb.log 2>&1 &
           XPID=$!
           for _ in $(seq 1 30); do xdpyinfo -display :97 >/dev/null 2>&1 && break; sleep 0.5; done
           export DISPLAY=:97
@@ -261,41 +262,53 @@ jobs:
           root=/tmp/smoke-root
           icd="$(basename "$(ls "$root/usr/share/vulkan/icd.d"/*.json | head -n1)")"
           echo "bundled ICD: $icd, triplet: $triplet"
-          ls -1 "$root/usr/lib/$triplet" | head -20
           # Force the bundled lavapipe (AppImageHub host has no system Vulkan ICD)
           export VK_ICD_FILENAMES="$root/usr/share/vulkan/icd.d/$icd"
           export VK_DRIVER_FILES="$root/usr/share/vulkan/icd.d/$icd"
           export VK_LOADER_DEBUG=error
           export LD_LIBRARY_PATH="$root/usr/lib/$triplet"
-          start=$(date +%s)
-          "$root/AppRun" >/tmp/smoke.log 2>&1 &
-          APID=$!
-          WINDOW=""
-          for WAIT in $(seq 1 60); do
-            kill -0 $APID 2>/dev/null || break
-            if xwininfo -tree -root >/dev/null 2>&1 && xwininfo -tree -root | grep -qE '0x.*": \('; then
-              WINDOW=yes; break
-            fi
-            sleep 1
-          done
-          end=$(date +%s)
-          if [ -n "$WINDOW" ] && kill -0 $APID 2>/dev/null; then
-            echo "SMOKE PASS: window appeared after $((end-start))s"
-          elif [ -n "$WINDOW" ]; then
-            echo "SMOKE PARTIAL: window appeared after $((end-start))s but app exited"
-          else
-            if kill -0 $APID 2>/dev/null; then
-              echo "SMOKE FAIL: no window within $((end-start))s (app alive)"
-            else
-              echo "SMOKE FAIL: app exited after $((end-start))s"
-            fi
-          fi
-          kill $APID 2>/dev/null || true
-          kill -9 $APID 2>/dev/null || true
+
+          wait_for_window() {  # $1=pid; echoes seconds or "NONE:.."
+            for WAIT in $(seq 1 60); do
+              kill -0 "$1" 2>/dev/null || { echo "NONE:exited-at-${WAIT}s"; return; }
+              if xwininfo -tree -root >/dev/null 2>&1 && xwininfo -tree -root | grep -qE '0x.*": \('; then
+                echo "WINDOW-at-${WAIT}s"; return
+              fi
+              sleep 1
+            done
+            echo "NONE:alive-after-60s"
+          }
+
+          # ---- Phase 1: direct run ----
+          echo "### PHASE 1 (direct) ###"
+          "$root/AppRun" >/tmp/smoke-direct.log 2>&1 &
+          P1=$!
+          echo "phase1: $(wait_for_window $P1)"
+          kill $P1 2>/dev/null || true; kill -9 $P1 2>/dev/null || true
+
+          # ---- Phase 2: inside firejail, mirroring `firejail --quiet --noprofile --net=none` ----
+          echo "### PHASE 2 (firejail) ###"
+          cat > /tmp/fj-run.sh <<'FJEOF'
+          #!/bin/bash
+          echo "ENV inside firejail:"
+          env | grep -E '^(LD_|VK_|DISPLAY|WAYLAND|XDG_|HOME)' || echo "(none of the queried vars are set)"
+          echo "--- starting AppRun from firejail ---"
+          exec /tmp/smoke-root/AppRun
+          FJEOF
+          chmod 0755 /tmp/fj-run.sh
+          firejail --quiet --noprofile --net=none /tmp/fj-run.sh >/tmp/smoke-fj.log 2>&1 &
+          FJ=$!
+          echo "phase2: $(wait_for_window $FJ)"
+          sleep 2
+          kill $FJ 2>/dev/null || true; kill -9 $FJ 2>/dev/null || true
           kill $XPID 2>/dev/null || true
-          echo "===== smoke.log (tail 120) ====="
-          tail -120 /tmp/smoke.log 2>/dev/null || true
-          rm -rf "$root"
+
+          echo "===== direct log (tail 80) ====="
+          tail -80 /tmp/smoke-direct.log 2>/dev/null || true
+          echo "===== firejail log (tail 80) ====="
+          tail -80 /tmp/smoke-fj.log 2>/dev/null || true
+          cat /tmp/smoke-direct.log /tmp/smoke-fj.log > /tmp/smoke.log 2>/dev/null || true
+          rm -rf "$root" /tmp/fj-run.sh
 
       - name: Upload smoke test log
         if: startsWith(matrix.os, 'ubuntu') && always()
