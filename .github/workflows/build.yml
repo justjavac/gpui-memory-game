@@ -131,11 +131,9 @@ jobs:
           set -euxo pipefail
           if [ "${{ runner.arch }}" = "ARM64" ]; then
             triplet="aarch64-linux-gnu"
-            icd="lvp_icd.arm64.json"
             tool_url="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-aarch64.AppImage"
           else
             triplet="x86_64-linux-gnu"
-            icd="lvp_icd.x86_64.json"
             tool_url="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
           fi
           # target/ is cached across OS only (not per-arch), so stale AppImages from
@@ -150,14 +148,31 @@ jobs:
           # 1. every file must be world-readable/executable (fixes owner-only exec bits)
           chmod -R a+rX "$root"
 
-          # 2. bundle the lavapipe software Vulkan driver as a fallback
+          # 2. bundle the lavapipe software Vulkan driver + loader + LLVM and the
+          #    matching ICD, so headless/CI hosts without any Vulkan ICD can
+          #    still run the app through the software renderer
           mkdir -p "$root/usr/lib/$triplet" "$root/usr/share/vulkan/icd.d"
           cp -a /usr/lib/$triplet/libvulkan_lvp.so* "$root/usr/lib/$triplet/"
-          cp -a /usr/lib/$triplet/libvulkan_lvp.so "$root/usr/share/vulkan/icd.d/"
-          cp /usr/share/vulkan/icd.d/$icd "$root/usr/share/vulkan/icd.d/"
+          # the Vulkan loader is needed to enumerate drivers; without it,
+          # dlopen("libvulkan.so.1") fails even when an ICD is present
+          cp -a /usr/lib/$triplet/libvulkan.so.1* "$root/usr/lib/$triplet/" || true
           # lavapipe (llvmpipe) needs LLVM at runtime; bundle it so the fallback
           # also works on hosts without any Mesa installation
           cp -a /usr/lib/$triplet/libLLVM*.so.1* "$root/usr/lib/$triplet/" || true
+          # pick the ICD file by name (varies between distros/arches)
+          lvp_json="$(ls /usr/share/vulkan/icd.d/*lvp*.json 2>/dev/null | head -n1)"
+          [ -n "$lvp_json" ] || { echo "ERROR: no lavapipe ICD json found" >&2; exit 1; }
+          icd="$(basename "$lvp_json")"
+          cp "$lvp_json" "$root/usr/share/vulkan/icd.d/"
+          # the packaged ICD references the driver via a path relative to the
+          # json's directory; repoint it at the bundled copy
+          python3 - "$root/usr/share/vulkan/icd.d/$icd" "$triplet" <<'PYEO'
+          import json, sys
+          p, t = sys.argv[1], sys.argv[2]
+          d = json.load(open(p))
+          d["ICD"]["library_path"] = "../../../../usr/lib/%s/libvulkan_lvp.so" % t
+          json.dump(d, open(p, "w"), indent=2)
+          PYEO
 
           # 3. wrap the original AppRun so the bundled driver is used only when the
           #    system has no Vulkan drivers at all
@@ -190,6 +205,7 @@ jobs:
           mode="$(stat -c '%a' /tmp/squashfs-root/AppRun)"
           grep -q 'AppRun.orig' /tmp/squashfs-root/AppRun || { echo "ERROR: AppRun wrapper missing" >&2; exit 1; }
           test -f /tmp/squashfs-root/usr/share/vulkan/icd.d/$icd || { echo "ERROR: lavapipe ICD missing" >&2; exit 1; }
+          test -f /tmp/squashfs-root/usr/lib/$triplet/libvulkan_lvp.so || { echo "ERROR: lavapipe driver missing" >&2; exit 1; }
           rm -f /tmp/gpui-memory-game-check.AppImage
           rm -rf /tmp/squashfs-root
           [ "$mode" = "755" ] || { echo "ERROR: AppRun mode is $mode, expected 755" >&2; exit 1; }
