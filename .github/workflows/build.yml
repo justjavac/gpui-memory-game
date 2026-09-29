@@ -187,6 +187,7 @@ jobs:
           cat > "$root/AppRun" <<'WRAP'
           #!/bin/bash
           here="$(cd "$(dirname "$(readlink -f "${0}")")" && pwd)"
+          echo "[appinfo] here=$here" >&2
 
           # Use the bundled lavapipe software Vulkan driver only when no system
           # Vulkan drivers exist (headless/CI/VMs); keep real drivers in front.
@@ -195,7 +196,14 @@ jobs:
             export VK_ICD_FILENAMES="$here/usr/share/vulkan/icd.d/{{ICD}}"
             export VK_DRIVER_FILES="$here/usr/share/vulkan/icd.d/{{ICD}}"
             export LD_LIBRARY_PATH="$here/usr/lib/{{TRIPLET}}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+            echo "[appinfo] no system Vulkan ICD -> using bundled lavapipe" >&2
+          else
+            echo "[appinfo] system Vulkan ICD present -> using system driver" >&2
           fi
+          echo "[appinfo] VK_ICD_FILENAMES=$VK_ICD_FILENAMES" >&2
+          echo "[appinfo] LD_LIBRARY_PATH=$LD_LIBRARY_PATH" >&2
+          echo "[appinfo] bundled ICD exists: $(test -f "$here/usr/share/vulkan/icd.d/{{ICD}}" && echo yes || echo no)" >&2
+          echo "[appinfo] bundled lavapipe exists: $(test -f "$here/usr/lib/{{TRIPLET}}/libvulkan_lvp.so" && echo yes || echo no)" >&2
 
           # Run the packaged binary the desktop entry points to.
           desktop_file="$(find "$here" -maxdepth 1 -name '*.desktop' 2>/dev/null | head -n1)"
@@ -234,81 +242,88 @@ jobs:
           [ "$mode" = "755" ] || { echo "ERROR: AppRun mode is $mode, expected 755" >&2; exit 1; }
           echo "AppRun permissions OK ($mode), lavapipe fallback bundled"
 
-      # Reproduce the exact AppImageHub test (Xvfb 800x600x24, DISPLAY set,
-      # no system Vulkan ICD -> bundled lavapipe) on the build runner.
-      # Phase 1 runs the app directly; phase 2 runs it inside the firejail
-      # sandbox like the official test does (the only env difference left
-      # between our CI and AppImageHub). Dumps both stderr logs.
-      - name: Smoke test under Xvfb
+      # Reproduce the exact AppImageHub test on the build runner: Xvfb
+      # 800x600x24, alpine (musl) firejail invoked with `--appimage`, and no
+      # system Vulkan ICD so the bundled lavapipe fallback in AppRun must kick
+      # in. Phase A is the 1:1 copy of the official command line; phase B runs
+      # the same AppImage without firejail for comparison. All diagnostic
+      # output (including AppRun's [appinfo] stderr banner) is captured.
+      - name: Smoke test under Xvfb (AppImageHub replica)
         if: startsWith(matrix.os, 'ubuntu')
         continue-on-error: true
         shell: bash
         run: |
           set -uxo pipefail
-          sudo apt-get update -q && sudo apt-get install -y -q xvfb x11-utils firejail || true
-          if [ "${{ runner.arch }}" = "ARM64" ]; then
-            triplet="aarch64-linux-gnu"
-          else
-            triplet="x86_64-linux-gnu"
-          fi
+          sudo apt-get update -q && sudo apt-get install -y -q xvfb x11-utils libfuse2 || true
+
+          # --- install the official alpine-musl firejail exactly as worker.sh does ---
+          curl -fsSL "https://github.com/AppImage/appimage.github.io/releases/download/deps/alpine-firejail-git20230825.tar.gz" -o /tmp/fj.tar.gz
+          (cd /tmp && tar xf fj.tar.gz) # firejail-0_git20230825-r0.apk etc.
+          curl -fsSL "https://dl-cdn.alpinelinux.org/alpine/v3.13/main/x86_64/musl-1.2.2-r2.apk" -o /tmp/musl.apk
+          mkdir -p /tmp/fjin
+          sudo tar xf /tmp/musl.apk -C /tmp/fjin 2>/dev/null || true
+          sudo tar xf /tmp/firejail-0_git20230825-r0.apk -C /tmp/fjin 2>/dev/null || true
+          sudo cp -Rf /tmp/fjin/etc/* /etc/
+          sudo cp -Rf /tmp/fjin/lib/* /lib/
+          sudo cp -Rf /tmp/fjin/usr/* /usr/
+          sudo chown root:root /usr/bin/firejail
+          sudo chmod u+s /usr/bin/firejail
+          firejail --version || true
+
           appimage="$(ls -1t "$PWD"/target/release/gpui-memory-game_*.AppImage | head -n1)"
           echo "smoke-test appimage: $appimage"
+          cp "$appimage" /tmp/BeingTested.AppImage
+
+          # Simulate the AppImageHub host: no system Vulkan ICD at all, so our
+          # AppRun fallback (bundled lavapipe) is the only way to get a device.
+          ls /usr/share/vulkan/icd.d/ 2>/dev/null || true
+          sudo mkdir -p /tmp/hidden-icd
+          sudo mv /usr/share/vulkan/icd.d /tmp/hidden-icd/icd.d 2>/dev/null || true
+          ls /usr/share/vulkan/ 2>/dev/null || echo "no /usr/share/vulkan anymore"
+          sudo rm -f /etc/vulkan/icd.d/*.json 2>/dev/null || true
+
           Xvfb :97 -screen 0 800x600x24 >/tmp/xvfb.log 2>&1 &
           XPID=$!
           for _ in $(seq 1 30); do xdpyinfo -display :97 >/dev/null 2>&1 && break; sleep 0.5; done
           export DISPLAY=:97
-          rm -rf /tmp/smoke-root
-          (cd /tmp && "$appimage" --appimage-extract >/dev/null 2>&1 && mv squashfs-root smoke-root)
-          root=/tmp/smoke-root
-          icd="$(basename "$(ls "$root/usr/share/vulkan/icd.d"/*.json | head -n1)")"
-          echo "bundled ICD: $icd, triplet: $triplet"
-          # Force the bundled lavapipe (AppImageHub host has no system Vulkan ICD)
-          export VK_ICD_FILENAMES="$root/usr/share/vulkan/icd.d/$icd"
-          export VK_DRIVER_FILES="$root/usr/share/vulkan/icd.d/$icd"
-          export VK_LOADER_DEBUG=error
-          export LD_LIBRARY_PATH="$root/usr/lib/$triplet"
 
           wait_for_window() {  # $1=pid; echoes seconds or "NONE:.."
-            for WAIT in $(seq 1 60); do
+            for WAIT in $(seq 1 90); do
               kill -0 "$1" 2>/dev/null || { echo "NONE:exited-at-${WAIT}s"; return; }
               if xwininfo -tree -root >/dev/null 2>&1 && xwininfo -tree -root | grep -qE '0x.*": \('; then
                 echo "WINDOW-at-${WAIT}s"; return
               fi
               sleep 1
             done
-            echo "NONE:alive-after-60s"
+            echo "NONE:alive-after-90s"
           }
 
-          # ---- Phase 1: direct run ----
-          echo "### PHASE 1 (direct) ###"
-          "$root/AppRun" >/tmp/smoke-direct.log 2>&1 &
-          P1=$!
-          echo "phase1: $(wait_for_window $P1)"
-          kill $P1 2>/dev/null || true; kill -9 $P1 2>/dev/null || true
-
-          # ---- Phase 2: inside firejail, mirroring `firejail --quiet --noprofile --net=none` ----
-          echo "### PHASE 2 (firejail) ###"
-          cat > /tmp/fj-run.sh <<'FJEOF'
-          #!/bin/bash
-          echo "ENV inside firejail:"
-          env | grep -E '^(LD_|VK_|DISPLAY|WAYLAND|XDG_|HOME)' || echo "(none of the queried vars are set)"
-          echo "--- starting AppRun from firejail ---"
-          exec /tmp/smoke-root/AppRun
-          FJEOF
-          chmod 0755 /tmp/fj-run.sh
-          firejail --quiet --noprofile --net=none /tmp/fj-run.sh >/tmp/smoke-fj.log 2>&1 &
-          FJ=$!
-          echo "phase2: $(wait_for_window $FJ)"
+          # ---- Phase A: exact official command line (firejail --appimage) ----
+          echo "### PHASE A (official: firejail --appimage) ###"
+          cd /tmp
+          firejail --quiet --noprofile --net=none --appimage ./BeingTested.AppImage >/tmp/smoke-a.log 2>&1 &
+          A=$!
+          sleep 10
+          echo "phaseA: $(wait_for_window $A)"
           sleep 2
-          kill $FJ 2>/dev/null || true; kill -9 $FJ 2>/dev/null || true
-          kill $XPID 2>/dev/null || true
+          kill $A 2>/dev/null || true; kill -9 $A 2>/dev/null || true
 
-          echo "===== direct log (tail 80) ====="
-          tail -80 /tmp/smoke-direct.log 2>/dev/null || true
-          echo "===== firejail log (tail 80) ====="
-          tail -80 /tmp/smoke-fj.log 2>/dev/null || true
-          cat /tmp/smoke-direct.log /tmp/smoke-fj.log > /tmp/smoke.log 2>/dev/null || true
-          rm -rf "$root" /tmp/fj-run.sh
+          # ---- Phase B: same AppImage without firejail ----
+          echo "### PHASE B (direct, same hidden-ICD env) ###"
+          ./BeingTested.AppImage >/tmp/smoke-b.log 2>&1 &
+          B=$!
+          echo "phaseB: $(wait_for_window $B)"
+          sleep 2
+          kill $B 2>/dev/null || true; kill -9 $B 2>/dev/null || true
+          cd "$PWD"
+
+          echo "===== PHASE A log (tail 120) ====="
+          tail -120 /tmp/smoke-a.log 2>/dev/null || true
+          echo "===== PHASE B log (tail 120) ====="
+          tail -120 /tmp/smoke-b.log 2>/dev/null || true
+          cat /tmp/smoke-a.log /tmp/smoke-b.log > /tmp/smoke.log 2>/dev/null || true
+          sudo mv /tmp/hidden-icd/icd.d /usr/share/vulkan/icd.d 2>/dev/null || true
+          kill $XPID 2>/dev/null || true
 
       - name: Upload smoke test log
         if: startsWith(matrix.os, 'ubuntu') && always()
