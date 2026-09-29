@@ -73,6 +73,11 @@ jobs:
           rustc --version
           cargo --version
 
+      # target/ may contain artifacts from other architectures: the cache is
+      # shared by every runner of the same OS, so include the arch in the key
+      # to keep x86_64 and aarch64 artifacts isolated (a mixed-arch target/
+      # can make cargo trust a proc-macro rlib built for the wrong arch, which
+      # fails compiles with "can't find crate").
       - name: Cache
         uses: actions/cache@v4
         with:
@@ -80,9 +85,9 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-
+            ${{ runner.os }}-${{ runner.arch }}-cargo-
 
       - name: Run cargo fmt
         run: cargo fmt --all -- --check
