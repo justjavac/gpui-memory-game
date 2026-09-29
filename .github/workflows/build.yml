@@ -234,6 +234,78 @@ jobs:
           [ "$mode" = "755" ] || { echo "ERROR: AppRun mode is $mode, expected 755" >&2; exit 1; }
           echo "AppRun permissions OK ($mode), lavapipe fallback bundled"
 
+      # Reproduce the exact AppImageHub test (Xvfb, DISPLAY, no system Vulkan
+      # ICD -> bundled lavapipe) on the build runner and keep the app's stderr.
+      # The official test reports ~30s without a window; measure the actual
+      # window latency here so failures can be debugged offline.
+      - name: Smoke test under Xvfb
+        if: startsWith(matrix.os, 'ubuntu')
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -uxo pipefail
+          sudo apt-get update -q && sudo apt-get install -y -q xvfb x11-utils || true
+          if [ "${{ runner.arch }}" = "ARM64" ]; then
+            triplet="aarch64-linux-gnu"
+          else
+            triplet="x86_64-linux-gnu"
+          fi
+          appimage="$(ls -1t "$PWD"/target/release/gpui-memory-game_*.AppImage | head -n1)"
+          echo "smoke-test appimage: $appimage"
+          Xvfb :97 -screen 0 1280x800x24 >/tmp/xvfb.log 2>&1 &
+          XPID=$!
+          for _ in $(seq 1 30); do xdpyinfo -display :97 >/dev/null 2>&1 && break; sleep 0.5; done
+          export DISPLAY=:97
+          rm -rf /tmp/smoke-root
+          (cd /tmp && "$appimage" --appimage-extract >/dev/null 2>&1 && mv squashfs-root smoke-root)
+          root=/tmp/smoke-root
+          icd="$(basename "$(ls "$root/usr/share/vulkan/icd.d"/*.json | head -n1)")"
+          echo "bundled ICD: $icd, triplet: $triplet"
+          ls -1 "$root/usr/lib/$triplet" | head -20
+          # Force the bundled lavapipe (AppImageHub host has no system Vulkan ICD)
+          export VK_ICD_FILENAMES="$root/usr/share/vulkan/icd.d/$icd"
+          export VK_DRIVER_FILES="$root/usr/share/vulkan/icd.d/$icd"
+          export VK_LOADER_DEBUG=error
+          export LD_LIBRARY_PATH="$root/usr/lib/$triplet"
+          start=$(date +%s)
+          "$root/AppRun" >/tmp/smoke.log 2>&1 &
+          APID=$!
+          WINDOW=""
+          for WAIT in $(seq 1 60); do
+            kill -0 $APID 2>/dev/null || break
+            if xwininfo -tree -root >/dev/null 2>&1 && xwininfo -tree -root | grep -qE '0x.*": \('; then
+              WINDOW=yes; break
+            fi
+            sleep 1
+          done
+          end=$(date +%s)
+          if [ -n "$WINDOW" ] && kill -0 $APID 2>/dev/null; then
+            echo "SMOKE PASS: window appeared after $((end-start))s"
+          elif [ -n "$WINDOW" ]; then
+            echo "SMOKE PARTIAL: window appeared after $((end-start))s but app exited"
+          else
+            if kill -0 $APID 2>/dev/null; then
+              echo "SMOKE FAIL: no window within $((end-start))s (app alive)"
+            else
+              echo "SMOKE FAIL: app exited after $((end-start))s"
+            fi
+          fi
+          kill $APID 2>/dev/null || true
+          kill -9 $APID 2>/dev/null || true
+          kill $XPID 2>/dev/null || true
+          echo "===== smoke.log (tail 120) ====="
+          tail -120 /tmp/smoke.log 2>/dev/null || true
+          rm -rf "$root"
+
+      - name: Upload smoke test log
+        if: startsWith(matrix.os, 'ubuntu') && always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-${{ matrix.os }}
+          path: /tmp/smoke.log
+          if-no-files-found: ignore
+
       - name: Pre-release (linux x86_64)
         if: matrix.os == 'ubuntu-22.04'
         run: zip -r gpui-memory-game-x86_64-unknown-linux-gnu.zip gpui-memory-game
