@@ -57,7 +57,7 @@ jobs:
               libwebkit2gtk-4.1-dev libxkbcommon-x11-dev \
               libx11-xcb-dev libxcb1-dev \
               libssl-dev libzstd-dev \
-              vulkan-validationlayers libvulkan1 \
+              vulkan-validationlayers libvulkan1 mesa-vulkan-drivers \
               mold squashfs-tools
 
       - name: Install stable toolchain
@@ -120,13 +120,24 @@ jobs:
 
       # cargo-packager's AppImage can embed AppRun and the main binary with owner-only
       # exec bits (e.g. 0744), so non-root users get "Permission denied" at startup,
-      # which fails the AppImage.appimage.github.io catalog test. Fix by extracting the
-      # AppImage, making every file world-executable/readable and re-packaging it.
-      - name: Make AppImage world-executable
+      # which fails the AppImage.appimage.github.io catalog test. Additionally, gpui on
+      # Linux requires a Vulkan device, so we bundle the lavapipe software driver as a
+      # fallback for environments without any Vulkan driver (e.g. headless CI).
+      # Fix both by extracting the AppImage, patching it and re-packaging it.
+      - name: Patch and repack AppImage
         if: startsWith(matrix.os, 'ubuntu')
         shell: bash
         run: |
           set -euxo pipefail
+          if [ "${{ runner.arch }}" = "ARM64" ]; then
+            triplet="aarch64-linux-gnu"
+            icd="lvp_icd.arm64.json"
+            tool_url="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-aarch64.AppImage"
+          else
+            triplet="x86_64-linux-gnu"
+            icd="lvp_icd.x86_64.json"
+            tool_url="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
+          fi
           # target/ is cached across OS only (not per-arch), so stale AppImages from
           # other architectures/versions may linger here; pick the newest one.
           appimage="$(ls -1t target/release/gpui-memory-game_*.AppImage 2>/dev/null | head -n1)"
@@ -134,25 +145,55 @@ jobs:
           cp "$appimage" /tmp/gpui-memory-game.AppImage
           rm -rf /tmp/squashfs-root
           (cd /tmp && ./gpui-memory-game.AppImage --appimage-extract && rm gpui-memory-game.AppImage)
-          chmod -R a+rX /tmp/squashfs-root
-          if [ "${{ runner.arch }}" = "ARM64" ]; then
-            tool_url="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-aarch64.AppImage"
-          else
-            tool_url="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
+
+          root=/tmp/squashfs-root
+          # 1. every file must be world-readable/executable (fixes owner-only exec bits)
+          chmod -R a+rX "$root"
+
+          # 2. bundle the lavapipe software Vulkan driver as a fallback
+          mkdir -p "$root/usr/lib/$triplet" "$root/usr/share/vulkan/icd.d"
+          cp -a /usr/lib/$triplet/libvulkan_lvp.so* "$root/usr/lib/$triplet/"
+          cp -a /usr/lib/$triplet/libvulkan_lvp.so "$root/usr/share/vulkan/icd.d/"
+          cp /usr/share/vulkan/icd.d/$icd "$root/usr/share/vulkan/icd.d/"
+          # lavapipe (llvmpipe) needs LLVM at runtime; bundle it so the fallback
+          # also works on hosts without any Mesa installation
+          cp -a /usr/lib/$triplet/libLLVM*.so.1* "$root/usr/lib/$triplet/" || true
+
+          # 3. wrap the original AppRun so the bundled driver is used only when the
+          #    system has no Vulkan drivers at all
+          mv "$root/AppRun" "$root/usr/bin/AppRun.orig"
+          cat > "$root/AppRun" <<'WRAP'
+          #!/bin/bash
+          here="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+          # Use the bundled lavapipe software Vulkan driver only when no system Vulkan
+          # drivers exist (headless/CI/VMs); keep real drivers in front otherwise.
+          if ! compgen -G "/usr/share/vulkan/icd.d/*.json" >/dev/null 2>&1 && \
+             ! compgen -G "/etc/vulkan/icd.d/*.json" >/dev/null 2>&1; then
+            export VK_ICD_FILENAMES="$here/usr/share/vulkan/icd.d/{{ICD}}"
+            export VK_DRIVER_FILES="$here/usr/share/vulkan/icd.d/{{ICD}}"
+            export LD_LIBRARY_PATH="$here/usr/lib/{{TRIPLET}}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
           fi
+          exec "$here/usr/bin/AppRun.orig" "$@"
+          WRAP
+          sed -i -e "s/{{ICD}}/$icd/" -e "s/{{TRIPLET}}/$triplet/" "$root/AppRun"
+          chmod 0755 "$root/AppRun"
+
+          # 4. re-package with appimagetool (run without FUSE) and overwrite the AppImage
           curl -fsSL "$tool_url" -o /tmp/appimagetool.AppImage
           chmod +x /tmp/appimagetool.AppImage
-          # Run appimagetool without FUSE and overwrite the original AppImage
-          /tmp/appimagetool.AppImage --appimage-extract-and-run /tmp/squashfs-root "$PWD/${appimage}"
-          # Verify the re-packaged AppImage: its AppRun must be executable by everyone
-          rm -rf /tmp/squashfs-root
+          /tmp/appimagetool.AppImage --appimage-extract-and-run "$root" "$PWD/${appimage}"
+
+          # 5. verify the re-packaged AppImage
+          rm -rf "$root"
           cp "$appimage" /tmp/gpui-memory-game-check.AppImage
           (cd /tmp && ./gpui-memory-game-check.AppImage --appimage-extract >/dev/null)
           mode="$(stat -c '%a' /tmp/squashfs-root/AppRun)"
+          grep -q 'AppRun.orig' /tmp/squashfs-root/AppRun || { echo "ERROR: AppRun wrapper missing" >&2; exit 1; }
+          test -f /tmp/squashfs-root/usr/share/vulkan/icd.d/$icd || { echo "ERROR: lavapipe ICD missing" >&2; exit 1; }
           rm -f /tmp/gpui-memory-game-check.AppImage
           rm -rf /tmp/squashfs-root
           [ "$mode" = "755" ] || { echo "ERROR: AppRun mode is $mode, expected 755" >&2; exit 1; }
-          echo "AppRun permissions OK ($mode)"
+          echo "AppRun permissions OK ($mode), lavapipe fallback bundled"
 
       - name: Pre-release (linux x86_64)
         if: matrix.os == 'ubuntu-22.04'
